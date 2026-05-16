@@ -11,7 +11,9 @@
 #include <QCheckBox>
 #include <QColorDialog>
 #include <QComboBox>
+#include <QDoubleSpinBox>
 #include <QFileDialog>
+#include <QFormLayout>
 #include <QGroupBox>
 #include <QHBoxLayout>
 #include <QLabel>
@@ -20,6 +22,7 @@
 #include <QPushButton>
 #include <QRadioButton>
 #include <QSlider>
+#include <QSpinBox>
 #include <QTabWidget>
 #include <QVBoxLayout>
 
@@ -256,6 +259,45 @@ OptionsDialog::OptionsDialog(QWidget *parent)
     tabWidget->addTab(pageImage, tr("Image adjustment"));
     tabWidget->addTab(pageAppearance, tr("Appearance"));
 
+    auto *gridSlideshowTab = new QWidget;
+    auto *gridSlideshowLayout = new QVBoxLayout(gridSlideshowTab);
+
+    auto *gridGroup = new QGroupBox(tr("Thumbnail Grid"));
+    auto *gridLayout = new QFormLayout(gridGroup);
+
+    gridColumnsSpin = new QSpinBox;
+    gridColumnsSpin->setRange(0, 20);
+    gridColumnsSpin->setSpecialValueText(tr("Auto"));
+    gridColumnsSpin->setToolTip(tr("Number of columns. 0 means auto-adapt to window width."));
+    gridLayout->addRow(tr("Columns:"), gridColumnsSpin);
+
+    gridThumbWidthSpin = new QSpinBox;
+    gridThumbWidthSpin->setRange(80, 300);
+    gridLayout->addRow(tr("Thumbnail width:"), gridThumbWidthSpin);
+
+    gridThumbHeightSpin = new QSpinBox;
+    gridThumbHeightSpin->setRange(100, 400);
+    gridLayout->addRow(tr("Thumbnail height:"), gridThumbHeightSpin);
+
+    gridSlideshowLayout->addWidget(gridGroup);
+
+    auto *slideshowGroup = new QGroupBox(tr("Slideshow"));
+    auto *slideshowLayout = new QFormLayout(slideshowGroup);
+
+    slideshowIntervalSpin = new QDoubleSpinBox;
+    slideshowIntervalSpin->setRange(0.5, 30.0);
+    slideshowIntervalSpin->setSingleStep(0.5);
+    slideshowIntervalSpin->setSuffix(" s");
+    slideshowLayout->addRow(tr("Interval:"), slideshowIntervalSpin);
+
+    slideshowLoopCheckBox = new QCheckBox(tr("Loop playback"));
+    slideshowLayout->addRow(slideshowLoopCheckBox);
+
+    gridSlideshowLayout->addWidget(slideshowGroup);
+    gridSlideshowLayout->addStretch();
+
+    tabWidget->addTab(gridSlideshowTab, tr("Grid && Slideshow"));
+
     layout->addWidget(tabWidget);
 
     auto buttons = new QHBoxLayout();
@@ -338,6 +380,11 @@ void OptionsDialog::saveOptions()
     Configuration::getConfiguration().setMouseMode(mouseMode);
 
     Configuration::getConfiguration().setScalingMethod(static_cast<ScaleMethod>(scalingMethodCombo->currentIndex()));
+    Configuration::getConfiguration().setThumbnailGridColumns(gridColumnsSpin->value());
+    Configuration::getConfiguration().setThumbnailGridSize(
+        QSize(gridThumbWidthSpin->value(), gridThumbHeightSpin->value()));
+    Configuration::getConfiguration().setSlideshowInterval(slideshowIntervalSpin->value());
+    Configuration::getConfiguration().setSlideshowLoop(slideshowLoopCheckBox->isChecked());
     emit changedImageOptions();
 
     const auto selectedLanguage = languageCombo->currentData().toString().trimmed();
@@ -409,6 +456,13 @@ void OptionsDialog::restoreOptions(QSettings *settings)
         hotAreasMouseModeRadioButton->setChecked(true);
         break;
     }
+
+    gridColumnsSpin->setValue(settings->value(THUMBNAIL_GRID_COLUMNS, 0).toInt());
+    QSize thumbSize = settings->value(THUMBNAIL_GRID_SIZE, QSize(150, 200)).toSize();
+    gridThumbWidthSpin->setValue(thumbSize.width());
+    gridThumbHeightSpin->setValue(thumbSize.height());
+    slideshowIntervalSpin->setValue(settings->value(SLIDESHOW_INTERVAL, 3.0).toDouble());
+    slideshowLoopCheckBox->setChecked(settings->value(SLIDESHOW_LOOP, false).toBool());
 }
 
 void OptionsDialog::updateColor(const QColor &color)

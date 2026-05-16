@@ -585,6 +585,24 @@ void MainWindowViewer::createActions()
     showFlowAction->setShortcut(ShortcutsManager::getShortcutsManager().getShortcut(SHOW_FLOW_ACTION_Y));
     connect(showFlowAction, &QAction::triggered, viewer, &Viewer::goToFlowSwitch);
 
+    showThumbnailGridAction = new QAction(tr("Thumbnail grid"), this);
+    showThumbnailGridAction->setData(SHOW_THUMBNAIL_GRID_ACTION_Y);
+    showThumbnailGridAction->setShortcut(
+        ShortcutsManager::getShortcutsManager().getShortcut(SHOW_THUMBNAIL_GRID_ACTION_Y));
+    connect(showThumbnailGridAction, &QAction::triggered, viewer, &Viewer::thumbnailGridSwitch);
+
+    slideshowToggleAction = new QAction(tr("Toggle slideshow"), this);
+    slideshowToggleAction->setData(SLIDESHOW_TOGGLE_ACTION_Y);
+    slideshowToggleAction->setShortcut(
+        ShortcutsManager::getShortcutsManager().getShortcut(SLIDESHOW_TOGGLE_ACTION_Y));
+    connect(slideshowToggleAction, &QAction::triggered, viewer, &Viewer::slideshowToggle);
+
+    slideshowFasterAction = addActionWithShortcut(tr("Slideshow faster"), SLIDESHOW_FASTER_ACTION_Y);
+    connect(slideshowFasterAction, &QAction::triggered, viewer, &Viewer::slideshowFaster);
+
+    slideshowSlowerAction = addActionWithShortcut(tr("Slideshow slower"), SLIDESHOW_SLOWER_ACTION_Y);
+    connect(slideshowSlowerAction, &QAction::triggered, viewer, &Viewer::slideshowSlower);
+
     showEditShortcutsAction = new QAction(tr("Edit shortcuts"), this);
     showEditShortcutsAction->setData(SHOW_EDIT_SHORTCUTS_ACTION_Y);
     showEditShortcutsAction->setShortcut(ShortcutsManager::getShortcutsManager().getShortcut(SHOW_EDIT_SHORTCUTS_ACTION_Y));
@@ -699,6 +717,8 @@ void MainWindowViewer::createToolBars()
 
     comicToolBar->addAction(wrappedToolbarAction(showDictionaryAction));
     comicToolBar->addAction(wrappedToolbarAction(showFlowAction));
+    comicToolBar->addAction(wrappedToolbarAction(showThumbnailGridAction));
+    comicToolBar->addAction(wrappedToolbarAction(slideshowToggleAction));
     comicToolBar->addAction(wrappedToolbarAction(showInfoAction));
 
 #ifdef Y_MAC_UI
@@ -751,6 +771,10 @@ void MainWindowViewer::createToolBars()
 
     viewer->addAction(showDictionaryAction);
     viewer->addAction(showFlowAction);
+    viewer->addAction(showThumbnailGridAction);
+    viewer->addAction(slideshowToggleAction);
+    viewer->addAction(slideshowFasterAction);
+    viewer->addAction(slideshowSlowerAction);
     viewer->addAction(showInfoAction);
     YACReader::addSperator(viewer);
 
@@ -1468,6 +1492,21 @@ void MainWindowViewer::setUpShortcutsManagement()
 
     allActions << tmpList;
 
+    editShortcutsDialog->addActionsGroup(tr("Thumbnail Grid"),
+        theme.shortcutsIcons.thumbnailGridIcon,
+        tmpList = QList<QAction *>() << showThumbnailGridAction);
+
+    allActions << tmpList;
+
+    editShortcutsDialog->addActionsGroup(tr("Slideshow"),
+        theme.shortcutsIcons.slideshowIcon,
+        tmpList = QList<QAction *>()
+            << slideshowToggleAction
+            << slideshowFasterAction
+            << slideshowSlowerAction);
+
+    allActions << tmpList;
+
     ShortcutsManager::getShortcutsManager().registerActions(allActions);
 }
 
@@ -1761,6 +1800,8 @@ void MainWindowViewer::applyTheme(const Theme &theme)
     setIcon(fitToPageAction, toolbarTheme.fitToPageAction, toolbarTheme.fitToPageAction18x18);
     setIcon(continuousScrollAction, toolbarTheme.continuousScrollAction, toolbarTheme.continuousScrollAction18x18);
     setIcon(showFlowAction, toolbarTheme.showFlowAction, toolbarTheme.showFlowAction18x18);
+    setIcon(showThumbnailGridAction, toolbarTheme.showThumbnailGridAction, toolbarTheme.showThumbnailGridAction18x18);
+    setIcon(slideshowToggleAction, toolbarTheme.slideshowToggleAction, toolbarTheme.slideshowToggleAction18x18);
 }
 
 void MainWindowViewer::dropEvent(QDropEvent *event)

@@ -14,6 +14,8 @@ class QPushButton;
 class QSlider;
 class QPushButton;
 class QRadioButton;
+class QSpinBox;
+class QDoubleSpinBox;
 class YACReaderSpinSliderWidget;
 
 class OptionsDialog : public YACReaderOptionsDialog, protected Themable
@@ -70,6 +72,12 @@ private:
     QRadioButton *normalMouseModeRadioButton;
     QRadioButton *leftRightNavigationMouseModeRadioButton;
     QRadioButton *hotAreasMouseModeRadioButton;
+
+    QSpinBox *gridColumnsSpin;
+    QSpinBox *gridThumbWidthSpin;
+    QSpinBox *gridThumbHeightSpin;
+    QDoubleSpinBox *slideshowIntervalSpin;
+    QCheckBox *slideshowLoopCheckBox;
 
 public slots:
     void saveOptions() override;

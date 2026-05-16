@@ -148,6 +148,10 @@ private:
     QAction *increasePageZoomAction;
     QAction *decreasePageZoomAction;
     QAction *showFlowAction;
+    QAction *showThumbnailGridAction;
+    QAction *slideshowToggleAction;
+    QAction *slideshowFasterAction;
+    QAction *slideshowSlowerAction;
 
     QAction *showEditShortcutsAction;
 
