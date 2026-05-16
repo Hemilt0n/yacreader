@@ -51,7 +51,7 @@
 | 模块 | 状态 | 说明 |
 |------|------|------|
 | MouseHandler 扩展 | ✅ | 网格视图可见时保护鼠标逻辑 |
-| 集成测试 | ⬜ | 需要在有 Qt6 环境中编译后运行 |
+| 集成测试 | ✅ | GitHub Actions CI: Build ✅ / Tests ✅ (run 25962429720) |
 | 代码格式化 | ⬜ | `clang-format-windows.cmd` |
 
 ---
@@ -65,3 +65,5 @@
 | 2026-05-16 | P3 | `9a007b63` | ThumbnailGridWidget 合并 |
 | 2026-05-16 | P4 | `37969260`, `94d4b0f3` | Viewer 集成 + MainWindowViewer/OptionsDialog 合并 |
 | 2026-05-16 | P5 | `405d086f` | MouseHandler 保护 + 收尾 |
+| 2026-05-16 | Fix | `697ba19e` | 修复 mouse_handler.cpp 缺少 include |
+| 2026-05-16 | Test | run 25962429720 | GitHub Actions CI: Build + Tests 全部通过 |
