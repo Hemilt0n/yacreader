@@ -12,9 +12,9 @@
 
 | 模块 | 文件 | Agent | 状态 | 说明 |
 |------|------|-------|------|------|
-| Configuration | `common/yacreader_global_gui.h`, `YACReader/configuration.h` | A | ⬜ | 新增 4 个 #define + 8 个 getter/setter |
-| ShortcutsManager | `shortcuts_management/shortcuts_manager.h/.cpp` | B | ⬜ | 新增 4 个 Action ID + 默认快捷键 |
-| Theme | `YACReader/themes/theme.h`, `theme_factory.h/.cpp` | C | ⬜ | 新增 ThumbnailGridTheme/SlideshowTheme 结构体 |
+| Configuration | `common/yacreader_global_gui.h`, `YACReader/configuration.h` | A | ✅ | 4 宏 + 8 getter/setter，编译通过 |
+| ShortcutsManager | `shortcuts_management/shortcuts_manager.h/.cpp` | B | ✅ | 4 Action ID + 默认快捷键，GO_TO_PAGE 改为 Ctrl+G |
+| Theme | `YACReader/themes/theme.h`, `theme_factory.h/.cpp` | C | ✅ | 新增结构体 + JSON 解析 + 主题工厂，编译通过 |
 
 ---
 
@@ -60,4 +60,4 @@
 
 | 时间 | 阶段 | 提交 | 说明 |
 |------|------|------|------|
-| - | - | - | 初始状态 |
+| 2026-05-16 | P1 | `91bf3d5a`, `a28f7541`, `edc9247f` | Configuration + ShortcutsManager + Theme 全部合并 |
