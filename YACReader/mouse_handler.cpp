@@ -29,6 +29,9 @@ void YACReader::MouseHandler::mousePressEvent(QMouseEvent *event)
 
 void YACReader::MouseHandler::mouseReleaseEvent(QMouseEvent *event)
 {
+    if (viewer->thumbnailGrid->isVisible())
+        return;
+
     if (event->button() == Qt::ForwardButton) {
         viewer->right();
         event->accept();
@@ -93,6 +96,9 @@ void YACReader::MouseHandler::mouseReleaseEvent(QMouseEvent *event)
 
 void YACReader::MouseHandler::mouseMoveEvent(QMouseEvent *event)
 {
+    if (viewer->thumbnailGrid->isVisible())
+        return;
+
     viewer->showCursor();
     viewer->hideCursorTimer->start(2500);
 
