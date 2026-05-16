@@ -48,6 +48,9 @@ jobs:
           copy build\bin\YACReader.exe artifacts\
           windeployqt --no-translations artifacts\YACReader.exe
           copy dependencies\pdfium\win\x64\pdfium.dll artifacts\
+          copy C:\Qt\6.9.3\msvc2022_64\bin\Qt6Core5Compat.dll artifacts\
+          copy C:\Qt\6.9.3\msvc2022_64\bin\Qt6Sql.dll artifacts\
+          copy C:\Qt\6.9.3\msvc2022_64\bin\Qt6ShaderTools.dll artifacts\
           if exist build\bin\*.dll copy build\bin\*.dll artifacts\
           dir artifacts /s
 
