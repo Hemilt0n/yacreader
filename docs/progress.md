@@ -22,8 +22,8 @@
 
 | 模块 | 文件 | Agent | 状态 | 依赖 |
 |------|------|-------|------|------|
-| SlideshowController | `YACReader/slideshow_controller.h/.cpp` | D | ⬜ | P1 (Configuration) |
-| ThumbnailGridToolBar | `YACReader/thumbnail_grid_toolbar.h/.cpp` | E | ⬜ | P1 (Theme) |
+| SlideshowController | `YACReader/slideshow_controller.h/.cpp` | D | ✅ | 状态机 + QTimer，编译通过 |
+| ThumbnailGridToolBar | `YACReader/thumbnail_grid_toolbar.h/.cpp` | E | ✅ | 页码输入+滑块+跳转/居中按钮，编译通过 |
 
 ---
 
