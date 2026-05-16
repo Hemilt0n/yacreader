@@ -220,8 +220,16 @@ Theme makeTheme(const ThemeParams &params)
     theme.thumbnailGrid.highlightColor = gridP.highlightColor;
     theme.thumbnailGrid.selectionColor = gridP.selectionColor;
     theme.thumbnailGrid.borderColor = gridP.borderColor;
-    theme.thumbnailGrid.labelQSS = gridP.t.labelQSS.arg(gridP.textColor.name());
-    theme.thumbnailGrid.borderQSS = gridP.t.borderQSS.arg(gridP.borderColor.name());
+    theme.thumbnailGrid.labelQSS = gridP.t.labelQSS.arg(gridP.textColor.name(), QString::number(12));
+    theme.thumbnailGrid.editQSS = gridP.t.editQSS.arg(
+            gridP.borderColor.name(),
+            gridP.backgroundColor.darker(115).name(),
+            gridP.textColor.name());
+    theme.thumbnailGrid.sliderQSS = gridP.t.sliderQSS.arg(
+            gridP.borderColor.name(),
+            gridP.backgroundColor.darker(125).name(),
+            gridP.selectionColor.name());
+    theme.thumbnailGrid.buttonQSS = gridP.t.buttonQSS;
 
     const QString gridCenterIconPath = recoloredSvgToThemeFile(":/images/centerFlow.svg", gridP.iconColor, params.meta.id);
     const QString gridGoToIconPath = recoloredSvgToThemeFile(":/images/gotoFlow.svg", gridP.iconColor, params.meta.id);

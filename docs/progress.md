@@ -67,3 +67,4 @@
 | 2026-05-16 | P5 | `405d086f` | MouseHandler 保护 + 收尾 |
 | 2026-05-16 | Fix | `697ba19e` | 修复 mouse_handler.cpp 缺少 include |
 | 2026-05-16 | Test | run 25962429720 | GitHub Actions CI: Build + Tests 全部通过 |
+| 2026-05-16 | Fix | codex/fix-thumbnail-grid | Thumbnail Grid lazy thumbnail loading, current-page highlight, RTL/config/theme/icon fixes; added static regression test |

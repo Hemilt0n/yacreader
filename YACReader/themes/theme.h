@@ -67,7 +67,12 @@ struct GoToFlowWidgetThemeTemplates {
 
 struct ThumbnailGridThemeTemplates {
     QString labelQSS = "QLabel { color: %1; font-size: %2px; }";
-    QString borderQSS = "QLabel { border: 2px solid %1; border-radius: 3px; }";
+    QString editQSS = "QLineEdit { border: 1px solid %1; background: %2; color: %3; padding: 2px 4px; font-weight: bold; }";
+    QString sliderQSS = "QSlider::groove:horizontal { border: 1px solid %1; background: %2; height: 5px; margin: 2px 0; }"
+                        "QSlider::handle:horizontal { background: %3; width: 18px; margin: -5px 0; }";
+    QString buttonQSS = "QPushButton { border: none; padding: 0px; } "
+                        "QPushButton:focus { border: none; outline: none; } "
+                        "QPushButton:pressed { padding-top: 1px; padding-left: 1px; padding-bottom: -1px; padding-right: -1px; }";
 };
 
 struct TranslatorTheme {
@@ -190,7 +195,9 @@ struct ThumbnailGridTheme {
     QColor borderColor;
     int thumbnailSpacing = 8;
     QString labelQSS;
-    QString borderQSS;
+    QString editQSS;
+    QString sliderQSS;
+    QString buttonQSS;
     QIcon centerIcon;
     QIcon goToIcon;
 };

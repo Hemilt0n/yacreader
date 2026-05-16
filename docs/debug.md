@@ -73,6 +73,53 @@ copy C:\Qt\6.9.3\msvc2022_64\bin\Qt6ShaderTools.dll artifacts\
 
 ---
 
+## Issue 4: 运行时缺少 `utils\7z.dll` — 打开压缩漫画提示 7z 不存在
+
+**现象**: 程序能启动，但打开 CBZ/CBR 等压缩漫画时弹出 `7z lib not found` / `unable to load 7z lib from ./utils`，随后退出。
+
+**原因**: Windows Qt6 构建使用 `DECOMPRESSION_BACKEND=7zip`。`compressed_archive` 运行时不会从 exe 同目录加载 `7z.dll`，而是通过 `YACReader::load7zLibrary()` 固定加载：
+```text
+<YACReader.exe 所在目录>\utils\7z.dll
+```
+
+`windeployqt` 不会复制这个第三方运行时库，手动收集产物时必须保留 `utils` 子目录。
+
+**修复**: 显式复制：
+```cmd
+mkdir artifacts\utils
+copy dependencies\7zip\win\x64\7z.dll artifacts\utils\7z.dll
+```
+
+**教训**: 7zip 后端的 DLL 路径和 `pdfium.dll` 不同。`pdfium.dll` 放在 exe 同目录，`7z.dll` 必须放在 `utils\` 子目录。安装器流程 `ci/win/create_installer.cmd` 已按该路径复制；临时/调试产物也需要一致。
+
+---
+
+## Issue 5: Thumbnail Grid 集成与性能问题
+
+**现象**: 网格功能能编译，但存在多处运行时/体验问题：
+- 打开漫画后即使不显示网格，也会为每页解码并缩放缩略图，导致打开大漫画时额外卡顿。
+- 当前页高亮接口未接入 `Render::pageChanged`，打开网格后无法稳定标出当前页。
+- Manga/RTL 模式只同步给 GoToFlow，缩略图网格仍按 LTR 排列。
+- 选项页保存的网格列数/缩略图尺寸没有通过 `Viewer::updateConfig()` 同步给网格。
+- Toolbar 图标资源缺失，主题 QSS 也把 QLabel/QSlider/QLineEdit selector 混用。
+
+**原因**: 初版实现复用了 GoToFlow 的部分接口形状，但没有完整接入 Viewer 的 page/config/RTL 数据流；同时网格是 QWidget 列表，不适合沿用 GoToFlow 那种预先接收并处理所有页面数据的策略。
+
+**修复**: `codex/fix-thumbnail-grid` 分支中做了以下收敛：
+- `ThumbnailGridWidget` 只记录页面 ready 状态，通过 Viewer 提供的 image provider 在可见时拉取页面数据。
+- 只在网格可见且 cell 进入 viewport 附近时解码/缩放缩略图。
+- 接入 `Render::pageChanged -> ThumbnailGridWidget::highlightPage`。
+- 同步 manga/RTL、运行时配置刷新、主题颜色和 widget-specific QSS。
+- 补齐 `thumbnailGrid.svg` / `slideshow.svg` 及 18x18 资源。
+- 新增 `tests/static/thumbnail_grid_static_test.py`，覆盖上述集成点。
+
+**本地静态验证**:
+```bash
+python3 tests/static/thumbnail_grid_static_test.py
+```
+
+---
+
 ## CI 工作流参考
 
 完整的构建+打包流程：
@@ -86,6 +133,8 @@ copy C:\Qt\6.9.3\msvc2022_64\bin\Qt6ShaderTools.dll artifacts\
     copy build\bin\YACReader.exe artifacts\
     windeployqt --no-translations artifacts\YACReader.exe
     copy dependencies\pdfium\win\x64\pdfium.dll artifacts\
+    mkdir artifacts\utils
+    copy dependencies\7zip\win\x64\7z.dll artifacts\utils\7z.dll
     copy C:\Qt\6.9.3\msvc2022_64\bin\Qt6Core5Compat.dll artifacts\
     copy C:\Qt\6.9.3\msvc2022_64\bin\Qt6Sql.dll artifacts\
     copy C:\Qt\6.9.3\msvc2022_64\bin\Qt6ShaderTools.dll artifacts\
