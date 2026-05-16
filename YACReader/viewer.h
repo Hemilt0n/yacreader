@@ -31,6 +31,9 @@ class GoToDialog;
 class YACReaderTranslator;
 class GoToFlowWidget;
 class Bookmarks;
+#include "slideshow_controller.h"
+
+class ThumbnailGridWidget;
 class ContinuousPageWidget;
 class ContinuousViewModel;
 class PageLabelWidget;
@@ -100,6 +103,14 @@ public slots:
     void translatorSwitch();
     void animateShowTranslator();
     void animateHideTranslator();
+    void thumbnailGridSwitch();
+    void showThumbnailGrid();
+    void animateShowThumbnailGrid();
+    void animateHideThumbnailGrid();
+    void slideshowToggle();
+    void slideshowStop();
+    void slideshowFaster();
+    void slideshowSlower();
     void mousePressEvent(QMouseEvent *event) override;
     void mouseReleaseEvent(QMouseEvent *event) override;
     void updateBackgroundColor(const QColor &color);
@@ -136,6 +147,9 @@ private:
     int nextPos;
     GoToFlowWidget *goToFlow;
     QPropertyAnimation *showGoToFlowAnimation;
+    ThumbnailGridWidget *thumbnailGrid;
+    QPropertyAnimation *showThumbnailGridAnimation;
+    SlideshowController *slideshowController;
     GoToDialog *goToDialog;
     //! Image properties
     //!  Comic
@@ -210,6 +224,15 @@ private:
 
     //! Mouse handler
     std::unique_ptr<YACReader::MouseHandler> mouseHandler;
+
+    bool slideshowWasActiveBeforeGrid = false;
+    void setupSlideshowController();
+    void showSlideshowNotification(const QString &text);
+
+private slots:
+    void onSlideshowStateChanged(SlideshowController::State newState);
+    void onSlideshowAdvancePage();
+    void onSlideshowIntervalChanged(qreal newInterval);
 
 protected:
     void applyTheme(const Theme &theme) override;

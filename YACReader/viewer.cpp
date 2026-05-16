@@ -12,6 +12,7 @@
 #include "page_label_widget.h"
 #include "render.h"
 #include "resize_image.h"
+#include "thumbnail_grid_widget.h"
 #include "translator.h"
 
 #include <QFile>
@@ -99,6 +100,14 @@ Viewer::Viewer(QWidget *parent)
     showGoToFlowAnimation = new QPropertyAnimation(goToFlow, "pos");
     showGoToFlowAnimation->setDuration(150);
 
+    thumbnailGrid = new ThumbnailGridWidget(this);
+    thumbnailGrid->hide();
+    showThumbnailGridAnimation = new QPropertyAnimation(thumbnailGrid, "windowOpacity");
+    showThumbnailGridAnimation->setDuration(200);
+
+    slideshowController = new SlideshowController(this);
+    setupSlideshowController();
+
     bd = new BookmarksDialog(this->parentWidget());
 
     render = new Render();
@@ -145,6 +154,7 @@ Viewer::~Viewer()
 {
     delete render;
     delete goToFlow;
+    delete slideshowController;
     delete translator;
     delete translatorAnimation;
     // messageLabel, content or continuousWidget may not be owned by the scroll area
@@ -223,6 +233,13 @@ void Viewer::createConnections()
     connect(render, &Render::isCover, this, &Viewer::showIsCoverMessage);
 
     connect(render, &Render::bookmarksUpdated, this, &Viewer::setBookmarks);
+
+    connect(render, QOverload<unsigned int>::of(&Render::numPages),
+            thumbnailGrid, &ThumbnailGridWidget::setNumSlides);
+    connect(render, QOverload<int, const QByteArray &>::of(&Render::imageLoaded),
+            thumbnailGrid, &ThumbnailGridWidget::setImageReady);
+    connect(thumbnailGrid, &ThumbnailGridWidget::goToPage,
+            this, qOverload<unsigned int>(&Viewer::goTo));
 }
 
 // Deprecated
@@ -233,6 +250,7 @@ void Viewer::prepareForOpening()
     // bd->setBookmarks(*bm);
 
     goToFlow->reset();
+    thumbnailGrid->reset();
 
     // render->update();
 
@@ -318,6 +336,7 @@ void Viewer::right()
 
 void Viewer::prev()
 {
+    slideshowController->stop();
     if (!render->hasLoadedComic()) {
         return;
     }
@@ -337,14 +356,17 @@ void Viewer::showGoToDialog()
 }
 void Viewer::goToFirstPage()
 {
+    slideshowController->stop();
     goTo(0);
 }
 void Viewer::goToLastPage()
 {
+    slideshowController->stop();
     goTo(this->render->numPages() - 1);
 }
 void Viewer::goTo(unsigned int page)
 {
+    slideshowController->stop();
     direction = 1; // in "go to" direction is always fordward
 
     if (continuousScroll) {
@@ -858,6 +880,8 @@ void Viewer::resizeEvent(QResizeEvent *event)
     updateContentSize();
     goToFlow->updateSize();
     goToFlow->move((width() - goToFlow->width()) / 2, height() - goToFlow->height());
+    thumbnailGrid->move(0, 0);
+    thumbnailGrid->resize(width(), height());
     informationLabel->updatePosition();
 }
 
@@ -1091,11 +1115,20 @@ void Viewer::updateInformation()
 {
     if (render->hasLoadedComic()) {
         auto displayTime = Configuration::getConfiguration().getShowTimeInInformation();
+        QString baseText;
         if (displayTime) {
-            informationLabel->setText(render->getCurrentPagesInformation() + " - " + QTime::currentTime().toString("HH:mm"));
+            baseText = render->getCurrentPagesInformation() + " - " + QTime::currentTime().toString("HH:mm");
         } else {
-            informationLabel->setText(render->getCurrentPagesInformation());
+            baseText = render->getCurrentPagesInformation();
         }
+
+        if (slideshowController->state() == SlideshowController::Playing) {
+            baseText += " ▶";
+        } else if (slideshowController->state() == SlideshowController::Paused) {
+            baseText += " ⏸";
+        }
+
+        informationLabel->setText(baseText);
 
         informationLabel->adjustSize();
         informationLabel->update(); // TODO it shouldn't be neccesary
@@ -1710,5 +1743,135 @@ void Viewer::updateComic(ComicDB &comic)
             comic.info.contrast = contrast;
         if (gamma != 100 || comic.info.gamma != -1)
             comic.info.gamma = gamma;
+    }
+}
+
+// ---- SlideshowController setup ----
+
+void Viewer::setupSlideshowController()
+{
+    connect(slideshowController, &SlideshowController::stateChanged,
+            this, &Viewer::onSlideshowStateChanged);
+    connect(slideshowController, &SlideshowController::advancePage,
+            this, &Viewer::onSlideshowAdvancePage);
+    connect(slideshowController, &SlideshowController::intervalChanged,
+            this, &Viewer::onSlideshowIntervalChanged);
+}
+
+void Viewer::onSlideshowStateChanged(SlideshowController::State newState)
+{
+    switch (newState) {
+    case SlideshowController::Playing:
+        showSlideshowNotification(tr("Auto %1s").arg(slideshowController->interval(), 0, 'f', 1));
+        break;
+    case SlideshowController::Paused:
+        showSlideshowNotification(tr("Auto paused"));
+        break;
+    case SlideshowController::Stopped:
+        showSlideshowNotification(tr("Auto stopped"));
+        break;
+    }
+}
+
+void Viewer::onSlideshowAdvancePage()
+{
+    if (!render->hasLoadedComic())
+        return;
+
+    if (render->getIndex() >= render->numPages() - 1) {
+        if (slideshowController->loop()) {
+            goTo(0);
+        } else {
+            slideshowController->stop();
+        }
+    } else {
+        next();
+    }
+}
+
+void Viewer::onSlideshowIntervalChanged(qreal newInterval)
+{
+    if (slideshowController->state() == SlideshowController::Playing) {
+        showSlideshowNotification(tr("Auto: %1s").arg(newInterval, 0, 'f', 1));
+    }
+}
+
+void Viewer::showSlideshowNotification(const QString &text)
+{
+    if (notificationsLabel) {
+        notificationsLabel->setText(text);
+        notificationsLabel->flash();
+    }
+}
+
+// ---- 幻灯片控制 ----
+
+void Viewer::slideshowToggle()
+{
+    slideshowController->toggle();
+}
+
+void Viewer::slideshowStop()
+{
+    slideshowController->stop();
+}
+
+void Viewer::slideshowFaster()
+{
+    slideshowController->faster();
+}
+
+void Viewer::slideshowSlower()
+{
+    slideshowController->slower();
+}
+
+// ---- 缩略图网格 ----
+
+void Viewer::thumbnailGridSwitch()
+{
+    thumbnailGrid->isVisible() ? animateHideThumbnailGrid() : showThumbnailGrid();
+}
+
+void Viewer::showThumbnailGrid()
+{
+    if (render->hasLoadedComic()) {
+        animateShowThumbnailGrid();
+    }
+}
+
+void Viewer::animateShowThumbnailGrid()
+{
+    if (thumbnailGrid->isHidden() && showThumbnailGridAnimation->state() != QPropertyAnimation::Running) {
+        if (goToFlow->isVisible())
+            animateHideGoToFlow();
+
+        slideshowWasActiveBeforeGrid = (slideshowController->state() == SlideshowController::Playing);
+        if (slideshowWasActiveBeforeGrid)
+            slideshowController->toggle();
+
+        disconnect(showThumbnailGridAnimation, &QAbstractAnimation::finished, thumbnailGrid, &QWidget::hide);
+        showThumbnailGridAnimation->setStartValue(0.0);
+        showThumbnailGridAnimation->setEndValue(1.0);
+        showThumbnailGridAnimation->start();
+        thumbnailGrid->show();
+        thumbnailGrid->setPageNumber(render->getIndex());
+        thumbnailGrid->centerSlide(render->getIndex());
+        thumbnailGrid->setFocus(Qt::OtherFocusReason);
+    }
+}
+
+void Viewer::animateHideThumbnailGrid()
+{
+    if (thumbnailGrid->isVisible() && showThumbnailGridAnimation->state() != QPropertyAnimation::Running) {
+        connect(showThumbnailGridAnimation, &QAbstractAnimation::finished, thumbnailGrid, &QWidget::hide);
+        showThumbnailGridAnimation->setStartValue(1.0);
+        showThumbnailGridAnimation->setEndValue(0.0);
+        showThumbnailGridAnimation->start();
+
+        if (slideshowWasActiveBeforeGrid)
+            slideshowController->toggle();
+
+        this->setFocus(Qt::OtherFocusReason);
     }
 }
