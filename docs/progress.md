@@ -39,10 +39,10 @@
 
 | 模块 | 文件 | Agent | 状态 | 依赖 |
 |------|------|-------|------|------|
-| Viewer 扩展 | `YACReader/viewer.h/.cpp` | G | ⬜ | P2+P3 |
-| MainWindowViewer 扩展 | `YACReader/main_window_viewer.h/.cpp` | H | ⬜ | P4 (Viewer) |
-| OptionsDialog 扩展 | `YACReader/options_dialog.h/.cpp` | H | ⬜ | P1 |
-| CMakeLists 更新 | `YACReader/CMakeLists.txt` | H | ⬜ | 所有新文件 |
+| Viewer 扩展 | `YACReader/viewer.h/.cpp` | G | ✅ | 叠加层调度 + SlideshowController 连接，编译通过 |
+| MainWindowViewer 扩展 | `YACReader/main_window_viewer.h/.cpp` | H | ✅ | 4 Action + 工具栏按钮 + 快捷键分组，编译通过 |
+| OptionsDialog 扩展 | `YACReader/options_dialog.h/.cpp` | H | ✅ | "Grid & Slideshow" 选项卡 + 配置持久化，编译通过 |
+| MouseHandler 扩展 | `YACReader/mouse_handler.cpp` | - | ✅ | 网格视图可见时保护鼠标事件 |
 
 ---
 
@@ -50,8 +50,8 @@
 
 | 模块 | 状态 | 说明 |
 |------|------|------|
-| MouseHandler 扩展 | ⬜ | 网格视图可见时保护鼠标逻辑 |
-| 集成测试 | ⬜ | 编译通过 + 基本功能手动验证 |
+| MouseHandler 扩展 | ✅ | 网格视图可见时保护鼠标逻辑 |
+| 集成测试 | ⬜ | 需要在有 Qt6 环境中编译后运行 |
 | 代码格式化 | ⬜ | `clang-format-windows.cmd` |
 
 ---
@@ -61,3 +61,7 @@
 | 时间 | 阶段 | 提交 | 说明 |
 |------|------|------|------|
 | 2026-05-16 | P1 | `91bf3d5a`, `a28f7541`, `edc9247f` | Configuration + ShortcutsManager + Theme 全部合并 |
+| 2026-05-16 | P2 | `ad2f5234`, `e8a28cce` | SlideshowController + ThumbnailGridToolBar 合并 |
+| 2026-05-16 | P3 | `9a007b63` | ThumbnailGridWidget 合并 |
+| 2026-05-16 | P4 | `37969260`, `94d4b0f3` | Viewer 集成 + MainWindowViewer/OptionsDialog 合并 |
+| 2026-05-16 | P5 | `405d086f` | MouseHandler 保护 + 收尾 |
