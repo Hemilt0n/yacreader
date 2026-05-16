@@ -382,7 +382,7 @@ void OptionsDialog::saveOptions()
     Configuration::getConfiguration().setScalingMethod(static_cast<ScaleMethod>(scalingMethodCombo->currentIndex()));
     Configuration::getConfiguration().setThumbnailGridColumns(gridColumnsSpin->value());
     Configuration::getConfiguration().setThumbnailGridSize(
-        QSize(gridThumbWidthSpin->value(), gridThumbHeightSpin->value()));
+            QSize(gridThumbWidthSpin->value(), gridThumbHeightSpin->value()));
     Configuration::getConfiguration().setSlideshowInterval(slideshowIntervalSpin->value());
     Configuration::getConfiguration().setSlideshowLoop(slideshowLoopCheckBox->isChecked());
     emit changedImageOptions();

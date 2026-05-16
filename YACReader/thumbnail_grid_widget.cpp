@@ -1,7 +1,9 @@
 #include "thumbnail_grid_widget.h"
-#include "thumbnail_grid_toolbar.h"
+
+#include "QsLog.h"
 #include "configuration.h"
 #include "theme_manager.h"
+#include "thumbnail_grid_toolbar.h"
 
 #include <QCoreApplication>
 #include <QGridLayout>
@@ -16,8 +18,6 @@
 #include <QVBoxLayout>
 
 #include <utility>
-
-#include "QsLog.h"
 
 ThumbnailGridWidget::ThumbnailGridWidget(QWidget *parent)
     : QWidget(parent)
@@ -99,9 +99,7 @@ int ThumbnailGridWidget::computeColumnCount() const
     int configuredCols = Configuration::getConfiguration().getThumbnailGridColumns();
     if (configuredCols > 0)
         return configuredCols;
-    int availableWidth = scrollArea->viewport()->width()
-        - gridLayout->contentsMargins().left()
-        - gridLayout->contentsMargins().right();
+    int availableWidth = scrollArea->viewport()->width() - gridLayout->contentsMargins().left() - gridLayout->contentsMargins().right();
     int cols = availableWidth / (thumbnailSize.width() + gridLayout->spacing());
     return qMax(1, cols);
 }

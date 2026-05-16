@@ -588,13 +588,13 @@ void MainWindowViewer::createActions()
     showThumbnailGridAction = new QAction(tr("Thumbnail grid"), this);
     showThumbnailGridAction->setData(SHOW_THUMBNAIL_GRID_ACTION_Y);
     showThumbnailGridAction->setShortcut(
-        ShortcutsManager::getShortcutsManager().getShortcut(SHOW_THUMBNAIL_GRID_ACTION_Y));
+            ShortcutsManager::getShortcutsManager().getShortcut(SHOW_THUMBNAIL_GRID_ACTION_Y));
     connect(showThumbnailGridAction, &QAction::triggered, viewer, &Viewer::thumbnailGridSwitch);
 
     slideshowToggleAction = new QAction(tr("Toggle slideshow"), this);
     slideshowToggleAction->setData(SLIDESHOW_TOGGLE_ACTION_Y);
     slideshowToggleAction->setShortcut(
-        ShortcutsManager::getShortcutsManager().getShortcut(SLIDESHOW_TOGGLE_ACTION_Y));
+            ShortcutsManager::getShortcutsManager().getShortcut(SLIDESHOW_TOGGLE_ACTION_Y));
     connect(slideshowToggleAction, &QAction::triggered, viewer, &Viewer::slideshowToggle);
 
     slideshowFasterAction = addActionWithShortcut(tr("Slideshow faster"), SLIDESHOW_FASTER_ACTION_Y);
@@ -1493,17 +1493,17 @@ void MainWindowViewer::setUpShortcutsManagement()
     allActions << tmpList;
 
     editShortcutsDialog->addActionsGroup(tr("Thumbnail Grid"),
-        theme.shortcutsIcons.thumbnailGridIcon,
-        tmpList = QList<QAction *>() << showThumbnailGridAction);
+                                         theme.shortcutsIcons.thumbnailGridIcon,
+                                         tmpList = QList<QAction *>() << showThumbnailGridAction);
 
     allActions << tmpList;
 
     editShortcutsDialog->addActionsGroup(tr("Slideshow"),
-        theme.shortcutsIcons.slideshowIcon,
-        tmpList = QList<QAction *>()
-            << slideshowToggleAction
-            << slideshowFasterAction
-            << slideshowSlowerAction);
+                                         theme.shortcutsIcons.slideshowIcon,
+                                         tmpList = QList<QAction *>()
+                                                 << slideshowToggleAction
+                                                 << slideshowFasterAction
+                                                 << slideshowSlowerAction);
 
     allActions << tmpList;
 

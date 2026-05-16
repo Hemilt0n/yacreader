@@ -1,4 +1,5 @@
 #include "thumbnail_grid_toolbar.h"
+
 #include "theme_manager.h"
 
 #include <QHBoxLayout>

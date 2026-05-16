@@ -239,7 +239,7 @@ Theme makeTheme(const ThemeParams &params)
     auto &slideP = params.slideshowParams;
     theme.slideshow.overlayBackgroundColor = slideP.overlayBackgroundColor;
     theme.slideshow.statusQSS = QString("QLabel { color: %1; font-size: 14px; font-weight: bold; }")
-                                         .arg(slideP.statusTextColor.name());
+                                        .arg(slideP.statusTextColor.name());
 
     setToolbarIconPairT(theme.toolbar.showThumbnailGridAction, theme.toolbar.showThumbnailGridAction18x18,
                         ":/images/viewer_toolbar/thumbnailGrid.svg");

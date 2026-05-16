@@ -3,12 +3,12 @@
 
 #include "themable.h"
 
-#include <functional>
-
 #include <QByteArray>
 #include <QSize>
 #include <QVector>
 #include <QWidget>
+
+#include <functional>
 
 class QGridLayout;
 class QScrollArea;
@@ -68,7 +68,7 @@ private:
     int currentHighlightIndex = -1;
     int currentFocusIndex = -1;
     int totalPages = 0;
-    QSize thumbnailSize{ 150, 200 };
+    QSize thumbnailSize { 150, 200 };
     int columnCount = 0;
     bool flowRightToLeft = false;
 
