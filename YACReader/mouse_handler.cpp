@@ -4,6 +4,7 @@
 #include "goto_flow_widget.h"
 #include "magnifying_glass.h"
 #include "render.h"
+#include "thumbnail_grid_widget.h"
 #include "viewer.h"
 
 #include <QScrollBar>
