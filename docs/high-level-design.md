@@ -15,9 +15,10 @@
 │  OptionsDialog     —  配置 UI（新增网格/幻灯片选项卡）     │
 ├─────────────────────────────────────────────────────────┤
 │                    核心层 (Core)                          │
-│  Viewer            —  叠加层调度、幻灯片状态机              │
+│  Viewer            —  叠加层调度，连接 SlideshowController │
 │  ThumbnailGridWidget  —  缩略图网格叠加层控件              │
 │  ThumbnailGridToolBar —  网格视图工具栏（页码输入+滑块）    │
+│  SlideshowController —  幻灯片状态机与定时器                │
 ├─────────────────────────────────────────────────────────┤
 │                    基础层 (Infrastructure)                │
 │  Configuration     —  配置持久化（新增配置项）              │
@@ -33,10 +34,11 @@
 MainWindowViewer
     ├── ThumbnailGridWidget ──→ Render (imageLoaded/bufferedImage)
     │       └── ThumbnailGridToolBar
+    ├── SlideshowController  —  定时器 + 状态机，独立于 UI
     ├── Viewer
     │       ├── ThumbnailGridWidget (叠加层生命周期)
     │       ├── GoToFlowWidget (互斥调度)
-    │       └── QTimer (slideshowTimer)
+    │       └── SlideshowController (信号连接，驱动翻页)
     ├── OptionsDialog → Configuration
     └── ShortcutsManager → shortcuts_manager.h/.cpp
 ```
@@ -248,15 +250,14 @@ ThumbnailGridWidget::buildGrid() / highlightPage()
 // viewer.h 新增
 
 class ThumbnailGridWidget;
+class SlideshowController;
 
 // ---- 叠加层 ----
 ThumbnailGridWidget *thumbnailGrid;
 QPropertyAnimation *showThumbnailGridAnimation;
 
 // ---- 幻灯片 ----
-QTimer *slideshowTimer;
-bool slideshowActive = false;
-bool slideshowPaused = false;
+SlideshowController *slideshowController;
 
 // ---- 叠加层调度 ----
 public slots:
@@ -267,16 +268,19 @@ public slots:
 
 // ---- 幻灯片 ----
 public slots:
-    void slideshowToggle();           // 启动/暂停
+    void slideshowToggle();           // 启动/暂停，委托给 SlideshowController
     void slideshowStop();             // 停止（手动翻页触发）
     void slideshowFaster();
     void slideshowSlower();
 private slots:
-    void slideshowTick();             // QTimer timeout → next()
+    void onSlideshowStateChanged(SlideshowController::State newState);
+    void onSlideshowAdvancePage();
+    void onSlideshowIntervalChanged(qreal newInterval);
 
 private:
-    void startSlideshowTimer();
-    void updateSlideshowStatus();     // 更新通知栏状态
+    bool slideshowWasActiveBeforeGrid = false;
+    void setupSlideshowController();
+    void showSlideshowNotification(const QString &text);
 ```
 
 #### 2.2.2 叠加层互斥调度
@@ -303,51 +307,38 @@ animateHideThumbnailGrid()
 
 同一时刻只允许一个叠加层可见。
 
-#### 2.2.3 幻灯片状态机
+#### 2.2.3 幻灯片：SlideshowController 状态机
+
+幻灯片逻辑封装为独立的 `SlideshowController` 类，Viewer 通过信号-槽连接驱动翻页和状态指示，不直接管理定时器和状态。
 
 ```
-                    ┌──────────────────┐
-                    │     Stopped       │
-                    │ slideshowActive=false │
-                    └────────┬─────────┘
-                             │ slideshowToggle()
-                             ▼
-                    ┌──────────────────┐
-                    │     Playing       │◄───────┐
-                    │ timer running     │        │ slideshowTick()
-                    └────────┬─────────┘        │ (next page, not last)
-                             │                  │
-                 ┌───────────┼──────────┐       │
-                 │           │          │       │
-            slideshowToggle()  last page   slideshowToggle()
-                 │           │  & loop    │
-                 ▼           ▼           ▼
-          ┌──────────┐  ┌────────┐  ┌──────────┐
-          │  Paused  │  │Stopped │  │ Playing  │
-          │ timer stopped │same   │  │ (loop   │
-          └────┬─────┘  └────────┘  │ restart)│
-               │                     └─────────┘
-        slideshowToggle()
-               │
-               ▼
-          ┌──────────┐
-          │ Playing  │ (resume timer)
-          └──────────┘
+SlideshowController 状态机：
 
-任何手动翻页 (prev/next/goTo) → slideshowStop() → Stopped
-slideshowFaster/Slower → 调整 interval，若 Playing 则 restart timer
+   Stopped ──toggle()──▶ Playing ──toggle()──▶ Paused
+      ▲                    │  │                   │
+      │                    │  │ advancePage()     │ toggle()
+      │ stop()             │  │ (not last page)   │
+      └────────────────────┘  ▼                   ▼
+                         Playing (next)        Playing (resume)
+                             │
+                             │ advancePage() 到达最后一页
+                             ├── loop=true  → goTo(0) → Playing (continue)
+                             └── loop=false → stop()  → Stopped
+
+任何手动翻页信号 (prev/goTo/goToFirst/goToLast) → stop() → Stopped
+faster()/slower() → setInterval()，若 Playing 则 restart timer
 ```
 
 **与现有 Viewer 方法的集成点**：
 
 | Viewer 现有方法 | 需添加的幻灯片逻辑 |
 |----------------|------------------|
-| `next()` | 若 `slideshowActive && !slideshowPaused`：不做额外处理（定时器驱动 next 本身）|
-| `prev()` | 调用 `slideshowStop()` |
-| `goTo()` | 调用 `slideshowStop()` |
-| `goToFirstPage()` / `goToLastPage()` | 调用 `slideshowStop()` |
+| `next()` | 不添加 stop — 幻灯片通过 `advancePage` 信号间接调用 `next()`，需在 MainWindowViewer 的 nextAction 中先 stop 再 next |
+| `prev()` | 调用 `slideshowController->stop()` |
+| `goTo()` | 调用 `slideshowController->stop()` |
+| `goToFirstPage()` / `goToLastPage()` | 调用 `slideshowController->stop()` |
 
-> **设计决策**：幻灯片的 `slideshowTick()` 直接调用 `next()`，不绕过双页模式等逻辑。到达最后一页时检查 `Configuration::getSlideshowLoop()`，循环则 `goTo(0)`，否则 `slideshowStop()`。
+> **设计决策**：`SlideshowController` 独立于 Viewer，仅持有 QTimer 和状态标志。Viewer 连接 `advancePage` 信号到 `next()`，连接 `stateChanged` 信号到通知栏更新。到达最后一页时检查 `Configuration::getSlideshowLoop()`，循环则 `goTo(0)`，否则 `stop()`。
 
 #### 2.2.4 状态指示
 
@@ -667,22 +658,27 @@ connect(thumbnailGrid, &ThumbnailGridWidget::goToPage,
 ### 3.2 幻灯片数据流
 
 ```
-┌──────────────────┐  timeout()   ┌─────────────┐  next()  ┌────────┐
-│  slideshowTimer  │────────────▶│    Viewer    │─────────▶│ Render │
-│  (QTimer)        │             │             │          │        │
-└──────────────────┘             │ slideshowTick│          └────────┘
-                                 │             │
-    ▲ slideshowToggle()          │ slideshowActive│
-    │ slideshowFaster()          │ slideshowPaused│
-    │ slideshowSlower()          └──────┬──────┘
-    │                                   │
-    │ SlideshowToggle Action            │ 更新通知
-    │ SlideshowFaster/Slower Action     │
-    │                                   ▼
-    │                          ┌──────────────────────┐
-    │                          │ NotificationsLabelWidget│
-    │                          │ PageLabelWidget         │
-    └──────────────────────────┴──────────────────────────┘
+                          advancePage()          next()
+SlideshowController ──────────────────▶ Viewer ────────▶ Render
+      │                                    │
+      │ stateChanged()                     │ 更新通知
+      │ intervalChanged()                  ▼
+      └──────────────────────▶ NotificationsLabelWidget
+                                PageLabelWidget
+
+外部控制:
+  MainWindowViewer::slideshowToggleAction → Viewer::slideshowToggle() → SlideshowController::toggle()
+  MainWindowViewer::slideshowFasterAction → Viewer::slideshowFaster() → SlideshowController::faster()
+  MainWindowViewer::slideshowSlowerAction → Viewer::slideshowSlower() → SlideshowController::slower()
+
+状态指示:
+  SlideshowController::stateChanged
+    ├── Playing → showSlideshowNotification("▶ Auto 3.0s")
+    ├── Paused  → showSlideshowNotification("⏸ Auto paused")
+    └── Stopped → showSlideshowNotification("⏹ Auto stopped")
+
+  SlideshowController::intervalChanged
+    └── (Playing 时) → showSlideshowNotification("Auto: 2.5s")
 ```
 
 ### 3.3 叠加层调度流
@@ -721,6 +717,8 @@ Viewer::showThumbnailGrid()
 | `YACReader/thumbnail_grid_widget.cpp` | 缩略图网格控件实现 |
 | `YACReader/thumbnail_grid_toolbar.h` | 网格工具栏声明 |
 | `YACReader/thumbnail_grid_toolbar.cpp` | 网格工具栏实现 |
+| `YACReader/slideshow_controller.h` | 幻灯片状态机声明 |
+| `YACReader/slideshow_controller.cpp` | 幻灯片状态机实现 |
 | `images/viewer_toolbar/thumbnailGrid.svg` | 网格视图工具栏图标 |
 | `images/viewer_toolbar/thumbnailGrid_18x18.svg` | 网格视图工具栏图标（小） |
 | `images/viewer_toolbar/slideshow.svg` | 幻灯片工具栏图标 |
@@ -770,15 +768,15 @@ Viewer::showThumbnailGrid()
 - 但两者共享相同的信号契约（`goToPage`/`setCenter`），便于统一接入
 - 如果后续抽象 `INavigationToolBar` 接口，两个类可以实现同一接口
 
-### 5.3 幻灯片设计嵌入 Viewer 而非独立类？
+### 5.3 幻灯片设计嵌入 Viewer 还是提取为独立类？
 
-**决策**：幻灯片逻辑（Timer + 状态标志）直接作为 Viewer 的成员，不提取为独立类。
+**决策**：将幻灯片逻辑提取为独立的 `SlideshowController` 类。
 
 **理由**：
-- 幻灯片只有 3 个状态标志（`slideshowActive`、`slideshowPaused`、interval）和 1 个 QTimer
-- 状态转换逻辑与 Viewer 的页面导航方法（`next()`/`goTo()`）强耦合
-- 将其提取为独立类会导致 Viewer 需要大量友元/friend 访问或信号绕行，增加复杂度而非降低
-- 如果幻灯片未来需要更多功能（过渡动画、进度条等），再重构提取为 `SlideshowController`
+- `SlideshowController` 仅持有 3 个状态 + 1 个 QTimer，通过 `advancePage`、`stateChanged`、`intervalChanged` 信号与 Viewer 通信
+- 状态机逻辑完全自包含，可独立进行单元测试（无需 Viewer/Render 依赖）
+- Viewer 只需连接信号，无需管理定时器细节，职责更清晰
+- 如果幻灯片未来需要更多功能（过渡动画、进度条、定时器精度调整等），只需修改 `SlideshowController`，不触动 Viewer
 
 ### 5.4 缩略图加载：Render 信号 vs 主动拉取？
 
@@ -791,12 +789,12 @@ Viewer::showThumbnailGrid()
 
 ### 5.5 网格视图全屏叠加 vs 部分遮挡？
 
-**决策**：网格视图**全屏叠加**（类似模态），而非底部悬浮条。
+**决策**：网格视图**全屏叠加**。
 
 **理由**：
-- 网格视图的核心价值是同时浏览所有页面缩略图，面积太小无法发挥作用
-- 全屏叠加确保缩略图足够大，用户可以快速识别目标页面
-- 退出方式明确：点击跳转或按 Escape/G 键关闭
+- 网格视图的核心价值是同时浏览尽可能多的页面缩略图以实现"一览全局"，面积太小则缩略图过小，用户无法识别目标页面内容
+- 与 GoToFlow 的底部悬浮定位不同：GoToFlow 用 3D 透视效果展示邻近页，信息密度低；网格视图用平面布局最大化信息密度
+- 退出路径明确：点击跳转或按 Escape/G 键关闭，用户不会迷失
 
 ---
 
