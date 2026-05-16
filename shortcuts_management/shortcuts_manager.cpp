@@ -46,7 +46,11 @@ void ShortcutsManager::initDefaultShorcuts()
     defaultShorcuts.insert(RIGHT_ROTATION_ACTION_Y, Qt::Key_R);
     defaultShorcuts.insert(DOUBLE_PAGE_ACTION_Y, Qt::Key_D);
     defaultShorcuts.insert(DOUBLE_MANGA_PAGE_ACTION_Y, Qt::Key_J);
-    defaultShorcuts.insert(GO_TO_PAGE_ACTION_Y, Qt::Key_G);
+    defaultShorcuts.insert(GO_TO_PAGE_ACTION_Y, Qt::CTRL | Qt::Key_G);
+    defaultShorcuts.insert(SHOW_THUMBNAIL_GRID_ACTION_Y, Qt::Key_G);
+    defaultShorcuts.insert(SLIDESHOW_TOGGLE_ACTION_Y, Qt::SHIFT | Qt::Key_S);
+    defaultShorcuts.insert(SLIDESHOW_FASTER_ACTION_Y, Qt::SHIFT | Qt::Key_Up);
+    defaultShorcuts.insert(SLIDESHOW_SLOWER_ACTION_Y, Qt::SHIFT | Qt::Key_Down);
     defaultShorcuts.insert(OPTIONS_ACTION_Y, Qt::Key_C);
     defaultShorcuts.insert(HELP_ABOUT_ACTION_Y, Qt::Key_F1);
     defaultShorcuts.insert(SHOW_MAGNIFYING_GLASS_ACTION_Y, Qt::Key_Z);
