@@ -42,6 +42,21 @@ struct GoToFlowWidgetParams {
     QColor iconColor;
 };
 
+struct ThumbnailGridParams {
+    ThumbnailGridThemeTemplates t;
+    QColor backgroundColor { 0x1a, 0x1a, 0x1a };
+    QColor textColor { Qt::white };
+    QColor highlightColor { 0x4c, 0xaf, 0x50 };
+    QColor selectionColor { 0x42, 0xa5, 0xf5 };
+    QColor borderColor { 0x66, 0x66, 0x66 };
+    QColor iconColor { 0xcc, 0xcc, 0xcc };
+};
+
+struct SlideshowParams {
+    QColor overlayBackgroundColor { 0x22, 0x22, 0x22 };
+    QColor statusTextColor { Qt::white };
+};
+
 struct WhatsNewDialogParams {
     QColor backgroundColor;
     QColor headerTextColor;
@@ -80,6 +95,8 @@ struct ThemeParams {
     ToolbarParams toolbarParams;
     ViewerParams viewerParams;
     GoToFlowWidgetParams goToFlowWidgetParams;
+    ThumbnailGridParams thumbnailGridParams;
+    SlideshowParams slideshowParams;
     HelpAboutDialogTheme helpAboutDialogParams;
     WhatsNewDialogParams whatsNewDialogParams;
     ShortcutsIconsParams shortcutsIconsParams;
@@ -196,6 +213,32 @@ Theme makeTheme(const ThemeParams &params)
     theme.goToFlowWidget.goToIcon = QIcon(goToIconPath);
     // end GoToFlowWidget
 
+    // ThumbnailGrid & Slideshow
+    auto &gridP = params.thumbnailGridParams;
+    theme.thumbnailGrid.backgroundColor = gridP.backgroundColor;
+    theme.thumbnailGrid.textColor = gridP.textColor;
+    theme.thumbnailGrid.highlightColor = gridP.highlightColor;
+    theme.thumbnailGrid.selectionColor = gridP.selectionColor;
+    theme.thumbnailGrid.borderColor = gridP.borderColor;
+    theme.thumbnailGrid.labelQSS = gridP.t.labelQSS.arg(gridP.textColor.name());
+    theme.thumbnailGrid.borderQSS = gridP.t.borderQSS.arg(gridP.borderColor.name());
+
+    const QString gridCenterIconPath = recoloredSvgToThemeFile(":/images/centerFlow.svg", gridP.iconColor, params.meta.id);
+    const QString gridGoToIconPath = recoloredSvgToThemeFile(":/images/gotoFlow.svg", gridP.iconColor, params.meta.id);
+    theme.thumbnailGrid.centerIcon = QIcon(gridCenterIconPath);
+    theme.thumbnailGrid.goToIcon = QIcon(gridGoToIconPath);
+
+    auto &slideP = params.slideshowParams;
+    theme.slideshow.overlayBackgroundColor = slideP.overlayBackgroundColor;
+    theme.slideshow.statusQSS = QString("QLabel { color: %1; font-size: 14px; font-weight: bold; }")
+                                         .arg(slideP.statusTextColor.name());
+
+    setToolbarIconPairT(theme.toolbar.showThumbnailGridAction, theme.toolbar.showThumbnailGridAction18x18,
+                        ":/images/viewer_toolbar/thumbnailGrid.svg");
+    setToolbarIconPairT(theme.toolbar.slideshowToggleAction, theme.toolbar.slideshowToggleAction18x18,
+                        ":/images/viewer_toolbar/slideshow.svg");
+    // end ThumbnailGrid & Slideshow
+
     // HelpAboutDialog
     theme.helpAboutDialog = params.helpAboutDialogParams;
     // end HelpAboutDialog
@@ -223,6 +266,8 @@ Theme makeTheme(const ThemeParams &params)
     theme.shortcutsIcons.magnifyingGlassIcon = makeShortcutsIcon(":/images/shortcuts/shortcuts_group_mglass.svg");
     theme.shortcutsIcons.pageIcon = makeShortcutsIcon(":/images/shortcuts/shortcuts_group_page.svg");
     theme.shortcutsIcons.readingIcon = makeShortcutsIcon(":/images/shortcuts/shortcuts_group_reading.svg");
+    theme.shortcutsIcons.thumbnailGridIcon = makeShortcutsIcon(":/images/shortcuts/shortcuts_group_grid.svg");
+    theme.shortcutsIcons.slideshowIcon = makeShortcutsIcon(":/images/shortcuts/shortcuts_group_slideshow.svg");
     // end ShortcutsIcons
 
     // FindFolder icon (used in OptionsDialog)
@@ -321,6 +366,24 @@ Theme makeTheme(const QJsonObject &json)
         gp.editTextColor = colorFromJson(g, "editTextColor", gp.editTextColor);
         gp.labelTextColor = colorFromJson(g, "labelTextColor", gp.labelTextColor);
         gp.iconColor = colorFromJson(g, "iconColor", gp.iconColor);
+    }
+
+    if (json.contains("thumbnailGrid")) {
+        const auto g = json["thumbnailGrid"].toObject();
+        auto &gp = p.thumbnailGridParams;
+        gp.backgroundColor = colorFromJson(g, "backgroundColor", gp.backgroundColor);
+        gp.textColor = colorFromJson(g, "textColor", gp.textColor);
+        gp.highlightColor = colorFromJson(g, "highlightColor", gp.highlightColor);
+        gp.selectionColor = colorFromJson(g, "selectionColor", gp.selectionColor);
+        gp.borderColor = colorFromJson(g, "borderColor", gp.borderColor);
+        gp.iconColor = colorFromJson(g, "iconColor", gp.iconColor);
+    }
+
+    if (json.contains("slideshow")) {
+        const auto s = json["slideshow"].toObject();
+        auto &sp = p.slideshowParams;
+        sp.overlayBackgroundColor = colorFromJson(s, "overlayBackgroundColor", sp.overlayBackgroundColor);
+        sp.statusTextColor = colorFromJson(s, "statusTextColor", sp.statusTextColor);
     }
 
     if (json.contains("helpAboutDialog")) {

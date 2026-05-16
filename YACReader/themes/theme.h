@@ -65,6 +65,11 @@ struct GoToFlowWidgetThemeTemplates {
     QString labelQSS = "QLabel { color: %1; }";
 };
 
+struct ThumbnailGridThemeTemplates {
+    QString labelQSS = "QLabel { color: %1; font-size: %2px; }";
+    QString borderQSS = "QLabel { border: 2px solid %1; border-radius: 3px; }";
+};
+
 struct TranslatorTheme {
     QColor backgroundColor;
     QColor inputBackgroundColor;
@@ -150,6 +155,10 @@ struct ToolbarTheme {
     QIcon continuousScrollAction18x18;
     QIcon showFlowAction;
     QIcon showFlowAction18x18;
+    QIcon showThumbnailGridAction;
+    QIcon showThumbnailGridAction18x18;
+    QIcon slideshowToggleAction;
+    QIcon slideshowToggleAction18x18;
 };
 
 struct ViewerTheme {
@@ -173,12 +182,32 @@ struct GoToFlowWidgetTheme {
     QIcon goToIcon;
 };
 
+struct ThumbnailGridTheme {
+    QColor backgroundColor;
+    QColor textColor;
+    QColor highlightColor;
+    QColor selectionColor;
+    QColor borderColor;
+    int thumbnailSpacing = 8;
+    QString labelQSS;
+    QString borderQSS;
+    QIcon centerIcon;
+    QIcon goToIcon;
+};
+
+struct SlideshowTheme {
+    QColor overlayBackgroundColor;
+    QString statusQSS;
+};
+
 struct ShortcutsIconsTheme {
     QIcon comicsIcon;
     QIcon generalIcon;
     QIcon magnifyingGlassIcon;
     QIcon pageIcon;
     QIcon readingIcon;
+    QIcon thumbnailGridIcon;
+    QIcon slideshowIcon;
 };
 
 struct DialogIconsTheme {
@@ -194,6 +223,8 @@ struct Theme {
     ToolbarTheme toolbar;
     ViewerTheme viewer;
     GoToFlowWidgetTheme goToFlowWidget;
+    ThumbnailGridTheme thumbnailGrid;
+    SlideshowTheme slideshow;
     HelpAboutDialogTheme helpAboutDialog;
     WhatsNewDialogTheme whatsNewDialog;
     ShortcutsIconsTheme shortcutsIcons;
