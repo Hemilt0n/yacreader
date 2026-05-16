@@ -94,6 +94,14 @@ public:
     void setShowInformation(bool b) { settings->setValue(SHOW_INFO, b); }
     bool getShowTimeInInformation() { return settings->value(SHOW_TIME_IN_INFO, true).toBool(); }
     void setShowTimeInInformation(bool b) { settings->setValue(SHOW_TIME_IN_INFO, b); }
+    int getThumbnailGridColumns() { return settings->value(THUMBNAIL_GRID_COLUMNS, 0).toInt(); }
+    void setThumbnailGridColumns(int c) { settings->setValue(THUMBNAIL_GRID_COLUMNS, c); }
+    QSize getThumbnailGridSize() { return settings->value(THUMBNAIL_GRID_SIZE, QSize(150, 200)).toSize(); }
+    void setThumbnailGridSize(const QSize &s) { settings->setValue(THUMBNAIL_GRID_SIZE, s); }
+    qreal getSlideshowInterval() { return settings->value(SLIDESHOW_INTERVAL, 3.0).toReal(); }
+    void setSlideshowInterval(qreal i) { settings->setValue(SLIDESHOW_INTERVAL, i); }
+    bool getSlideshowLoop() { return settings->value(SLIDESHOW_LOOP, false).toBool(); }
+    void setSlideshowLoop(bool l) { settings->setValue(SLIDESHOW_LOOP, l); }
     QDate getLastVersionCheck() { return settings->value(LAST_VERSION_CHECK).toDate(); }
     void setLastVersionCheck(const QDate &date) { settings->setValue(LAST_VERSION_CHECK, date); }
     int getNumDaysBetweenVersionChecks() { return settings->value(NUM_DAYS_BETWEEN_VERSION_CHECKS, 1).toInt(); }

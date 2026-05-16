@@ -122,3 +122,8 @@ QString imageFileLoader(QWidget *parent);
 QString imagePathFromMimeData(const QMimeData *mimeData);
 }
 #endif
+
+#define THUMBNAIL_GRID_COLUMNS "THUMBNAIL_GRID_COLUMNS"
+#define THUMBNAIL_GRID_SIZE "THUMBNAIL_GRID_SIZE"
+#define SLIDESHOW_INTERVAL "SLIDESHOW_INTERVAL"
+#define SLIDESHOW_LOOP "SLIDESHOW_LOOP"
