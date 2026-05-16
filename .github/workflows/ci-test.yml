@@ -1,0 +1,41 @@
+name: CI Test (Thumbnail Grid & Slideshow)
+
+on:
+  push:
+    branches:
+      - develop
+
+jobs:
+  build-and-test:
+    name: Build & Test (Windows x64 Qt6)
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.10'
+          architecture: 'x64'
+
+      - name: Install Qt
+        shell: cmd
+        run: |
+          pip install aqtinstall
+          mkdir C:\Qt
+          python -m aqt install-qt windows desktop 6.9.3 win64_msvc2022_64 -O c:\Qt -m qt5compat qtmultimedia qtimageformats qtshadertools qtspeech
+
+      - name: Build
+        shell: cmd
+        run: |
+          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+          set PATH=C:\Qt\6.9.3\msvc2022_64\bin;%PATH%
+          cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DDECOMPRESSION_BACKEND=7zip -DPDF_BACKEND=pdfium -DCMAKE_PREFIX_PATH=C:\Qt\6.9.3\msvc2022_64
+          cmake --build build --parallel
+
+      - name: Run Tests
+        shell: cmd
+        run: |
+          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+          set PATH=C:\Qt\6.9.3\msvc2022_64\bin;%PATH%
+          ctest --test-dir build --output-on-failure
