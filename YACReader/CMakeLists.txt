@@ -44,6 +44,8 @@ qt_add_executable(YACReader WIN32
     themes/theme_factory.cpp
     ${PROJECT_SOURCE_DIR}/common/themes/theme_manager.h
     ${PROJECT_SOURCE_DIR}/common/themes/theme_manager.cpp
+    slideshow_controller.h
+    slideshow_controller.cpp
 )
 yacreader_apply_build_options(YACReader)
 
