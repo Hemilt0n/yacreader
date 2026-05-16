@@ -31,7 +31,7 @@
 
 | 模块 | 文件 | Agent | 状态 | 依赖 |
 |------|------|-------|------|------|
-| ThumbnailGridWidget | `YACReader/thumbnail_grid_widget.h/.cpp` | F | ⬜ | P2 (ToolBar) |
+| ThumbnailGridWidget | `YACReader/thumbnail_grid_widget.h/.cpp` | F | ✅ | 网格布局 + 渐进加载 + 键盘导航，编译通过 |
 
 ---
 
