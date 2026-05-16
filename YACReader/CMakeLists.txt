@@ -33,6 +33,8 @@ qt_add_executable(YACReader WIN32
     goto_flow_toolbar.cpp
     thumbnail_grid_toolbar.h
     thumbnail_grid_toolbar.cpp
+    thumbnail_grid_widget.h
+    thumbnail_grid_widget.cpp
     width_slider.h
     width_slider.cpp
     notifications_label_widget.h
