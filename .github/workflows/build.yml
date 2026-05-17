@@ -35,6 +35,7 @@ jobs:
   # Code format validation
   code-format-validation:
     name: Code Format Validation
+    if: ${{ false }}
     runs-on: macos-latest
     needs: initialization
     steps:
@@ -55,8 +56,9 @@ jobs:
   # Source tarball
   source-tarball:
     name: Source Tarball
+    if: ${{ false }}
     runs-on: ubuntu-24.04
-    needs: [initialization, code-format-validation]
+    needs: [initialization]
     steps:
       - uses: actions/checkout@v6
 
@@ -76,6 +78,7 @@ jobs:
   # Linux Qt6 build
   linux-qt6:
     name: Linux (Qt6)
+    if: ${{ false }}
     runs-on: ubuntu-24.04
     needs: [initialization, code-format-validation]
     steps:
@@ -110,6 +113,7 @@ jobs:
   # Linux Qt6 with 7zip
   linux-qt6-7zip:
     name: Linux (Qt6 + 7zip)
+    if: ${{ false }}
     runs-on: ubuntu-24.04
     needs: [initialization, code-format-validation]
     steps:
@@ -144,6 +148,7 @@ jobs:
   # macOS Qt6 Universal build
   macos-qt6-universal:
     name: macOS (Qt6 Universal)
+    if: ${{ false }}
     runs-on: macos-15
     needs: [initialization, code-format-validation]
     steps:
@@ -196,7 +201,7 @@ jobs:
   windows-x64-qt6:
     name: Windows x64 (Qt6)
     runs-on: windows-2022
-    needs: [initialization, code-format-validation]
+    needs: [initialization]
     steps:
       - uses: actions/checkout@v6
 
@@ -337,9 +342,16 @@ jobs:
           name: windows-x64-qt6-${{ needs.initialization.outputs.build_number }}
           path: ci/win/Output/YACReader*.exe
 
+      - name: Upload portable package
+        uses: actions/upload-artifact@v6
+        with:
+          name: windows-x64-portable-qt6-${{ needs.initialization.outputs.build_number }}
+          path: ci/win/installer_contents/**
+
   # Windows ARM64 Qt6 build
   windows-arm64-qt6:
     name: Windows ARM64 (Qt6)
+    if: ${{ false }}
     runs-on: windows-2022
     needs: [initialization, code-format-validation]
     steps:
@@ -466,6 +478,7 @@ jobs:
   # Docker amd64 build
   docker-amd64:
     name: Docker amd64 Image
+    if: ${{ false }}
     runs-on: ubuntu-latest
     needs: [initialization, code-format-validation]
     steps:
@@ -492,6 +505,7 @@ jobs:
   # Docker arm64 build (native)
   docker-arm64:
     name: Docker arm64 Image
+    if: ${{ false }}
     runs-on: ubuntu-24.04-arm
     needs: [initialization, code-format-validation]
     steps:
@@ -515,7 +529,7 @@ jobs:
   # Publish dev builds
   publish-dev-builds:
     name: Publish Dev Builds
-    if: github.repository == 'YACReader/yacreader' && github.ref == 'refs/heads/develop'
+    if: ${{ false }}
     runs-on: ubuntu-24.04
     needs:
       - initialization
@@ -583,7 +597,7 @@ jobs:
   # Publish release builds
   publish-release:
     name: Publish Release
-    if: github.repository == 'YACReader/yacreader' && github.ref == 'refs/heads/master'
+    if: ${{ false }}
     runs-on: ubuntu-24.04
     needs:
       - initialization

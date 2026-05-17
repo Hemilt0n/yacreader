@@ -1,16 +1,25 @@
 #include "thumbnail_grid_widget.h"
-#include "thumbnail_grid_toolbar.h"
+
+#include "QsLog.h"
 #include "configuration.h"
 #include "theme_manager.h"
+#include "thumbnail_grid_toolbar.h"
 
 #include <QCoreApplication>
 #include <QGridLayout>
+#include <QImage>
 #include <QKeyEvent>
 #include <QLabel>
 #include <QMouseEvent>
 #include <QResizeEvent>
 #include <QScrollArea>
+#include <QScrollBar>
+#include <QShowEvent>
+#include <QSizePolicy>
+#include <QTimer>
 #include <QVBoxLayout>
+
+#include <utility>
 
 ThumbnailGridWidget::ThumbnailGridWidget(QWidget *parent)
     : QWidget(parent)
@@ -26,8 +35,10 @@ ThumbnailGridWidget::ThumbnailGridWidget(QWidget *parent)
     scrollArea->setFrameShape(QFrame::NoFrame);
 
     gridContainer = new QWidget;
+    gridContainer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
     gridLayout = new QGridLayout(gridContainer);
-    gridLayout->setSpacing(8);
+    thumbnailSize = Configuration::getConfiguration().getThumbnailGridSize();
+    gridLayout->setSpacing(theme.thumbnailGrid.thumbnailSpacing);
     gridLayout->setContentsMargins(8, 8, 8, 8);
     gridContainer->setLayout(gridLayout);
 
@@ -43,6 +54,8 @@ ThumbnailGridWidget::ThumbnailGridWidget(QWidget *parent)
     connect(toolBar, &ThumbnailGridToolBar::setCenter, this, [this](unsigned int page) {
         centerSlide(static_cast<int>(page));
     });
+    connect(scrollArea->verticalScrollBar(), &QScrollBar::valueChanged,
+            this, &ThumbnailGridWidget::ensureVisibleThumbnails);
 
     setFocusPolicy(Qt::StrongFocus);
     hide();
@@ -58,10 +71,10 @@ void ThumbnailGridWidget::setNumSlides(unsigned int slides)
     totalPages = static_cast<int>(slides);
     imagesReady.resize(slides);
     imagesReady.fill(false);
-    rawImages.clear();
-    scaledCache.clear();
+    QLOG_DEBUG() << "Thumbnail grid page count" << slides;
     buildGrid();
     toolBar->setTop(slides);
+    ensureVisibleThumbnails();
 }
 
 void ThumbnailGridWidget::buildGrid()
@@ -70,18 +83,19 @@ void ThumbnailGridWidget::buildGrid()
         return;
 
     columnCount = computeColumnCount();
+    gridLayout->setOriginCorner(flowRightToLeft ? Qt::TopRightCorner : Qt::TopLeftCorner);
     items.resize(totalPages);
 
     for (int i = 0; i < totalPages; ++i) {
         QWidget *cell = createThumbnailCell(i);
         int row = i / columnCount;
-        int col = flowRightToLeft ? (columnCount - 1 - i % columnCount) : (i % columnCount);
+        int col = i % columnCount;
         gridLayout->addWidget(cell, row, col);
         items[i].cellWidget = cell;
     }
 
-    if (currentHighlightIndex >= 0 && currentHighlightIndex < totalPages)
-        updateItemHighlight(-1, currentHighlightIndex);
+    refreshItemStyles();
+    QTimer::singleShot(0, this, &ThumbnailGridWidget::ensureVisibleThumbnails);
 }
 
 int ThumbnailGridWidget::computeColumnCount() const
@@ -89,9 +103,12 @@ int ThumbnailGridWidget::computeColumnCount() const
     int configuredCols = Configuration::getConfiguration().getThumbnailGridColumns();
     if (configuredCols > 0)
         return configuredCols;
-    int availableWidth = scrollArea->viewport()->width()
-        - gridLayout->contentsMargins().left()
-        - gridLayout->contentsMargins().right();
+    int viewportWidth = scrollArea->viewport()->width();
+    if (viewportWidth <= 0 && parentWidget())
+        viewportWidth = parentWidget()->width();
+    int availableWidth = viewportWidth - gridLayout->contentsMargins().left() - gridLayout->contentsMargins().right();
+    if (availableWidth <= 0)
+        return 1;
     int cols = availableWidth / (thumbnailSize.width() + gridLayout->spacing());
     return qMax(1, cols);
 }
@@ -120,13 +137,16 @@ QWidget *ThumbnailGridWidget::createThumbnailCell(int pageIndex)
     auto *imageLabel = new QLabel;
     imageLabel->setFixedSize(thumbnailSize);
     imageLabel->setAlignment(Qt::AlignCenter);
-    imageLabel->setStyleSheet("QLabel { background-color: #2a2a2a; border: 1px solid #444; border-radius: 3px; }");
+    imageLabel->setScaledContents(false);
 
     auto *pageLabel = new QLabel(QString::number(pageIndex + 1));
     pageLabel->setAlignment(Qt::AlignCenter);
+    pageLabel->setStyleSheet(theme.thumbnailGrid.labelQSS);
 
     cellLayout->addWidget(imageLabel);
     cellLayout->addWidget(pageLabel);
+    cellLayout->setAlignment(imageLabel, Qt::AlignCenter);
+    cellLayout->setAlignment(pageLabel, Qt::AlignCenter);
 
     if (pageIndex < items.size()) {
         items[pageIndex].imageLabel = imageLabel;
@@ -135,7 +155,11 @@ QWidget *ThumbnailGridWidget::createThumbnailCell(int pageIndex)
     }
 
     cell->setCursor(Qt::PointingHandCursor);
+    imageLabel->setCursor(Qt::PointingHandCursor);
+    pageLabel->setCursor(Qt::PointingHandCursor);
     cell->installEventFilter(this);
+    imageLabel->installEventFilter(this);
+    pageLabel->installEventFilter(this);
 
     return cell;
 }
@@ -145,13 +169,20 @@ void ThumbnailGridWidget::setImageReady(int index, const QByteArray &image)
     if (index < 0 || index >= totalPages || items.isEmpty())
         return;
 
-    rawImages[index] = image;
     if (index < imagesReady.size())
         imagesReady[index] = true;
-    displayThumbnail(index);
+    if (isVisible() && isThumbnailVisible(index))
+        displayThumbnail(index, image);
 }
 
 void ThumbnailGridWidget::displayThumbnail(int index)
+{
+    if (!imageProvider)
+        return;
+    displayThumbnail(index, imageProvider(index));
+}
+
+void ThumbnailGridWidget::displayThumbnail(int index, const QByteArray &imageData)
 {
     if (index < 0 || index >= items.size())
         return;
@@ -159,16 +190,19 @@ void ThumbnailGridWidget::displayThumbnail(int index)
         return;
 
     QImage img;
-    const QByteArray &rawData = rawImages[index];
-    if (!rawData.isEmpty()) {
-        img.loadFromData(rawData);
+    if (!imageData.isEmpty()) {
+        img.loadFromData(imageData);
     }
     if (img.isNull()) {
+        items[index].imageLabel->setFixedSize(thumbnailSize);
         items[index].imageLabel->setText(QObject::tr("Page %1").arg(index + 1));
         return;
     }
 
-    img = img.scaled(thumbnailSize, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+    const QSize displaySize = scaledThumbnailSize(img);
+    img = img.scaled(displaySize, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+    items[index].imageLabel->setFixedSize(displaySize);
+    items[index].imageLabel->setText(QString());
     items[index].imageLabel->setPixmap(QPixmap::fromImage(img));
     items[index].imageLoaded = true;
 }
@@ -182,16 +216,8 @@ void ThumbnailGridWidget::highlightPage(int pageIndex)
 
 void ThumbnailGridWidget::updateItemHighlight(int oldIndex, int newIndex)
 {
-    auto applyStyle = [&](int idx, const QString &style) {
-        if (idx >= 0 && idx < totalPages && idx < items.size() && items[idx].imageLabel)
-            items[idx].imageLabel->setStyleSheet(style);
-    };
-
-    QString normalStyle = "QLabel { border: 2px solid #444; border-radius: 3px; }";
-    QString highlightStyle = "QLabel { border: 2px solid #4caf50; border-radius: 3px; }";
-
-    applyStyle(oldIndex, normalStyle);
-    applyStyle(newIndex, highlightStyle);
+    applyItemStyle(oldIndex);
+    applyItemStyle(newIndex);
 }
 
 void ThumbnailGridWidget::centerSlide(int slide)
@@ -204,6 +230,7 @@ void ThumbnailGridWidget::centerSlide(int slide)
         scrollArea->ensureWidgetVisible(cell, 0, 0);
 
     setPageNumber(slide);
+    ensureVisibleThumbnails();
 }
 
 void ThumbnailGridWidget::setPageNumber(int page)
@@ -259,13 +286,8 @@ void ThumbnailGridWidget::keyPressEvent(QKeyEvent *event)
 
 void ThumbnailGridWidget::updateItemSelection(int oldIndex, int newIndex)
 {
-    QString normalStyle = "QLabel { border: 2px solid #444; border-radius: 3px; }";
-    QString selectionStyle = "QLabel { border: 2px solid #42a5f5; border-radius: 3px; }";
-
-    if (oldIndex >= 0 && oldIndex < totalPages && oldIndex < items.size() && items[oldIndex].imageLabel)
-        items[oldIndex].imageLabel->setStyleSheet(normalStyle);
-    if (newIndex >= 0 && newIndex < totalPages && newIndex < items.size() && items[newIndex].imageLabel)
-        items[newIndex].imageLabel->setStyleSheet(selectionStyle);
+    applyItemStyle(oldIndex);
+    applyItemStyle(newIndex);
 
     if (newIndex >= 0 && newIndex < totalPages && newIndex < items.size() && items[newIndex].cellWidget)
         scrollArea->ensureWidgetVisible(items[newIndex].cellWidget, 0, 0);
@@ -286,31 +308,42 @@ void ThumbnailGridWidget::updateSize()
     if (newCols != columnCount && totalPages > 0) {
         clearGrid();
         buildGrid();
-        if (!rawImages.isEmpty()) {
-            for (int i = 0; i < totalPages; ++i) {
-                if (i < imagesReady.size() && imagesReady.value(i, false))
-                    displayThumbnail(i);
-            }
-        }
+        ensureVisibleThumbnails();
     }
 
     toolBar->setFixedWidth(width());
+    ensureVisibleThumbnails();
 }
 
 bool ThumbnailGridWidget::eventFilter(QObject *watched, QEvent *event)
 {
-    if (event->type() == QEvent::MouseButtonRelease) {
+    if (event->type() == QEvent::MouseButtonDblClick || event->type() == QEvent::MouseButtonRelease) {
         auto *mouseEvent = static_cast<QMouseEvent *>(event);
         if (mouseEvent->button() == Qt::LeftButton) {
-            for (int i = 0; i < items.size(); ++i) {
-                if (items[i].cellWidget == watched) {
-                    emit goToPage(static_cast<unsigned int>(i));
-                    return true;
-                }
+            const int pageIndex = itemIndexForObject(watched);
+            if (pageIndex >= 0) {
+                if (event->type() == QEvent::MouseButtonRelease)
+                    emit goToPage(static_cast<unsigned int>(pageIndex));
+                event->accept();
+                return true;
             }
         }
     }
     return QWidget::eventFilter(watched, event);
+}
+
+void ThumbnailGridWidget::showEvent(QShowEvent *event)
+{
+    QWidget::showEvent(event);
+    QLOG_DEBUG() << "Showing thumbnail grid" << totalPages << "pages";
+    updateSize();
+    QTimer::singleShot(0, this, [this]() {
+        updateSize();
+        if (currentHighlightIndex >= 0)
+            centerSlide(currentHighlightIndex);
+        else
+            ensureVisibleThumbnails();
+    });
 }
 
 void ThumbnailGridWidget::applyTheme(const Theme &theme)
@@ -321,6 +354,9 @@ void ThumbnailGridWidget::applyTheme(const Theme &theme)
     pal.setColor(QPalette::WindowText, gridTheme.textColor);
     setPalette(pal);
     setAutoFillBackground(true);
+    if (gridLayout)
+        gridLayout->setSpacing(gridTheme.thumbnailSpacing);
+    refreshItemStyles();
 }
 
 void ThumbnailGridWidget::reset()
@@ -329,9 +365,7 @@ void ThumbnailGridWidget::reset()
     currentHighlightIndex = -1;
     currentFocusIndex = -1;
     totalPages = 0;
-    rawImages.clear();
     imagesReady.clear();
-    scaledCache.clear();
 }
 
 void ThumbnailGridWidget::updateConfig(QSettings *settings)
@@ -342,14 +376,93 @@ void ThumbnailGridWidget::updateConfig(QSettings *settings)
     if (totalPages > 0) {
         clearGrid();
         buildGrid();
-        for (int i = 0; i < totalPages; ++i) {
-            if (i < imagesReady.size() && imagesReady.value(i, false))
-                displayThumbnail(i);
-        }
+        ensureVisibleThumbnails();
     }
+}
+
+void ThumbnailGridWidget::setImageProvider(std::function<QByteArray(int)> provider)
+{
+    imageProvider = std::move(provider);
 }
 
 void ThumbnailGridWidget::setFlowRightToLeft(bool b)
 {
+    if (flowRightToLeft == b)
+        return;
     flowRightToLeft = b;
+    if (totalPages > 0) {
+        clearGrid();
+        buildGrid();
+        centerSlide(currentHighlightIndex >= 0 ? currentHighlightIndex : 0);
+    }
+}
+
+bool ThumbnailGridWidget::isThumbnailVisible(int index) const
+{
+    if (index < 0 || index >= items.size() || !items[index].cellWidget)
+        return false;
+
+    const QWidget *cell = items[index].cellWidget;
+    const QPoint topLeft = cell->mapTo(scrollArea->viewport(), QPoint(0, 0));
+    const QRect cellRect(topLeft, cell->size());
+    return scrollArea->viewport()->rect().adjusted(0, -thumbnailSize.height(), 0, thumbnailSize.height()).intersects(cellRect);
+}
+
+void ThumbnailGridWidget::ensureVisibleThumbnails()
+{
+    if (!isVisible() || totalPages == 0 || items.isEmpty())
+        return;
+
+    for (int i = 0; i < items.size(); ++i) {
+        if (i < imagesReady.size() && imagesReady.value(i, false) && isThumbnailVisible(i) && !items[i].imageLoaded)
+            displayThumbnail(i);
+    }
+}
+
+QString ThumbnailGridWidget::styleForItem(int index) const
+{
+    QColor border = theme.thumbnailGrid.borderColor;
+    if (index == currentHighlightIndex)
+        border = theme.thumbnailGrid.highlightColor;
+    if (index == currentFocusIndex)
+        border = theme.thumbnailGrid.selectionColor;
+
+    return QString("QLabel { background-color: %1; border: 2px solid %2; border-radius: 3px; }")
+            .arg(theme.thumbnailGrid.backgroundColor.darker(115).name(QColor::HexArgb),
+                 border.name(QColor::HexArgb));
+}
+
+void ThumbnailGridWidget::applyItemStyle(int index)
+{
+    if (index < 0 || index >= items.size() || !items[index].imageLabel)
+        return;
+    items[index].imageLabel->setStyleSheet(styleForItem(index));
+    if (items[index].pageLabel)
+        items[index].pageLabel->setStyleSheet(theme.thumbnailGrid.labelQSS);
+}
+
+void ThumbnailGridWidget::refreshItemStyles()
+{
+    for (int i = 0; i < items.size(); ++i)
+        applyItemStyle(i);
+}
+
+int ThumbnailGridWidget::itemIndexForObject(QObject *watched) const
+{
+    auto *watchedWidget = qobject_cast<QWidget *>(watched);
+    for (int i = 0; i < items.size(); ++i) {
+        if (items[i].cellWidget == watched || items[i].imageLabel == watched || items[i].pageLabel == watched)
+            return items[i].pageIndex;
+        if (watchedWidget && items[i].cellWidget && items[i].cellWidget->isAncestorOf(watchedWidget))
+            return items[i].pageIndex;
+    }
+    return -1;
+}
+
+QSize ThumbnailGridWidget::scaledThumbnailSize(const QImage &image) const
+{
+    if (image.isNull())
+        return thumbnailSize;
+    const QSize scaledSize = image.size().scaled(thumbnailSize, Qt::KeepAspectRatio);
+    return scaledSize.isValid() ? scaledSize : thumbnailSize;
 }

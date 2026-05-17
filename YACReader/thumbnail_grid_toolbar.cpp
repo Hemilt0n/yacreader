@@ -1,4 +1,5 @@
 #include "thumbnail_grid_toolbar.h"
+
 #include "theme_manager.h"
 
 #include <QHBoxLayout>
@@ -6,6 +7,7 @@
 #include <QLabel>
 #include <QLineEdit>
 #include <QPushButton>
+#include <QSignalBlocker>
 #include <QSlider>
 
 ThumbnailGridToolBar::ThumbnailGridToolBar(QWidget *parent)
@@ -47,14 +49,20 @@ ThumbnailGridToolBar::ThumbnailGridToolBar(QWidget *parent)
 
 void ThumbnailGridToolBar::setPage(int pageNumber)
 {
+    const QSignalBlocker sliderBlocker(slider);
     edit->setText(QString::number(pageNumber + 1));
     slider->setValue(pageNumber);
 }
 
 void ThumbnailGridToolBar::setTop(int numPages)
 {
-    v->setTop(numPages);
-    slider->setMaximum(numPages - 1);
+    const bool hasPages = numPages > 0;
+    v->setTop(qMax(1, numPages));
+    slider->setMaximum(qMax(0, numPages - 1));
+    edit->setEnabled(hasPages);
+    slider->setEnabled(hasPages);
+    centerButton->setEnabled(hasPages);
+    goToButton->setEnabled(hasPages);
 }
 
 void ThumbnailGridToolBar::goTo()
@@ -83,11 +91,11 @@ void ThumbnailGridToolBar::applyTheme(const Theme &theme)
     pal.setColor(QPalette::WindowText, gridTheme.textColor);
     setPalette(pal);
     setAutoFillBackground(true);
-    edit->setStyleSheet(gridTheme.labelQSS.isEmpty() ? theme.goToFlowWidget.editQSS : gridTheme.labelQSS);
-    slider->setStyleSheet(gridTheme.borderQSS.isEmpty() ? theme.goToFlowWidget.sliderQSS : gridTheme.borderQSS);
+    edit->setStyleSheet(gridTheme.editQSS.isEmpty() ? theme.goToFlowWidget.editQSS : gridTheme.editQSS);
+    slider->setStyleSheet(gridTheme.sliderQSS.isEmpty() ? theme.goToFlowWidget.sliderQSS : gridTheme.sliderQSS);
     pageLabel->setStyleSheet(gridTheme.labelQSS.isEmpty() ? theme.goToFlowWidget.labelQSS : gridTheme.labelQSS);
     centerButton->setIcon(gridTheme.centerIcon.isNull() ? theme.goToFlowWidget.centerIcon : gridTheme.centerIcon);
-    centerButton->setStyleSheet(theme.goToFlowWidget.buttonQSS);
+    centerButton->setStyleSheet(gridTheme.buttonQSS.isEmpty() ? theme.goToFlowWidget.buttonQSS : gridTheme.buttonQSS);
     goToButton->setIcon(gridTheme.goToIcon.isNull() ? theme.goToFlowWidget.goToIcon : gridTheme.goToIcon);
-    goToButton->setStyleSheet(theme.goToFlowWidget.buttonQSS);
+    goToButton->setStyleSheet(gridTheme.buttonQSS.isEmpty() ? theme.goToFlowWidget.buttonQSS : gridTheme.buttonQSS);
 }

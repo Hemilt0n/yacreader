@@ -1,11 +1,11 @@
 #include "slideshow_controller.h"
+
 #include "configuration.h"
 
 #include <QTimer>
 
 SlideshowController::SlideshowController(QObject *parent)
-    : QObject(parent)
-    , timer(new QTimer(this))
+    : QObject(parent), timer(new QTimer(this))
 {
     mInterval = Configuration::getConfiguration().getSlideshowInterval();
     mLoop = Configuration::getConfiguration().getSlideshowLoop();
@@ -15,9 +15,18 @@ SlideshowController::SlideshowController(QObject *parent)
 
 SlideshowController::~SlideshowController() = default;
 
-SlideshowController::State SlideshowController::state() const { return mState; }
-qreal SlideshowController::interval() const { return mInterval; }
-bool SlideshowController::loop() const { return mLoop; }
+SlideshowController::State SlideshowController::state() const
+{
+    return mState;
+}
+qreal SlideshowController::interval() const
+{
+    return mInterval;
+}
+bool SlideshowController::loop() const
+{
+    return mLoop;
+}
 
 void SlideshowController::setInterval(qreal seconds)
 {

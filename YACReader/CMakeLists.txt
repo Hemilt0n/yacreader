@@ -88,6 +88,8 @@ set(yacreader_image_files
     ${PROJECT_SOURCE_DIR}/images/shortcuts/shortcuts_group_libraries.svg
     ${PROJECT_SOURCE_DIR}/images/shortcuts/shortcuts_group_mglass.svg
     ${PROJECT_SOURCE_DIR}/images/shortcuts/shortcuts_group_page.svg
+    ${PROJECT_SOURCE_DIR}/images/shortcuts/shortcuts_group_grid.svg
+    ${PROJECT_SOURCE_DIR}/images/shortcuts/shortcuts_group_slideshow.svg
     ${PROJECT_SOURCE_DIR}/images/shortcuts/shortcuts_group_reading.svg
     ${PROJECT_SOURCE_DIR}/images/shortcuts/shortcuts_group_visualization.svg
     ${PROJECT_SOURCE_DIR}/images/custom_dialog/custom_close_button.svg
@@ -98,6 +100,8 @@ set(yacreader_image_files
     ${PROJECT_SOURCE_DIR}/images/viewer_toolbar/doubleMangaPage.svg
     ${PROJECT_SOURCE_DIR}/images/viewer_toolbar/fitToPage.svg
     ${PROJECT_SOURCE_DIR}/images/viewer_toolbar/flow.svg
+    ${PROJECT_SOURCE_DIR}/images/viewer_toolbar/thumbnailGrid.svg
+    ${PROJECT_SOURCE_DIR}/images/viewer_toolbar/slideshow.svg
     ${PROJECT_SOURCE_DIR}/images/viewer_toolbar/full.svg
     ${PROJECT_SOURCE_DIR}/images/viewer_toolbar/goto.svg
     ${PROJECT_SOURCE_DIR}/images/viewer_toolbar/help.svg
@@ -127,6 +131,8 @@ set(yacreader_image_files
     ${PROJECT_SOURCE_DIR}/images/viewer_toolbar/doubleMangaPage_18x18.svg
     ${PROJECT_SOURCE_DIR}/images/viewer_toolbar/fitToPage_18x18.svg
     ${PROJECT_SOURCE_DIR}/images/viewer_toolbar/flow_18x18.svg
+    ${PROJECT_SOURCE_DIR}/images/viewer_toolbar/thumbnailGrid_18x18.svg
+    ${PROJECT_SOURCE_DIR}/images/viewer_toolbar/slideshow_18x18.svg
     ${PROJECT_SOURCE_DIR}/images/viewer_toolbar/full_18x18.svg
     ${PROJECT_SOURCE_DIR}/images/viewer_toolbar/goto_18x18.svg
     ${PROJECT_SOURCE_DIR}/images/viewer_toolbar/help_18x18.svg

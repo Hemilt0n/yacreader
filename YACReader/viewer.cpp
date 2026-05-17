@@ -228,11 +228,16 @@ void Viewer::createConnections()
     connect(render, &Render::currentPageIsBookmark, this, &Viewer::pageIsBookmark);
     connect(render, &Render::pageChanged, this, &Viewer::updateInformation);
     connect(render, &Render::pageChanged, this, &Viewer::onRenderPageChanged);
+    connect(render, &Render::pageChanged, thumbnailGrid, &ThumbnailGridWidget::highlightPage);
 
     connect(render, &Render::isLast, this, &Viewer::showIsLastMessage);
     connect(render, &Render::isCover, this, &Viewer::showIsCoverMessage);
 
     connect(render, &Render::bookmarksUpdated, this, &Viewer::setBookmarks);
+
+    thumbnailGrid->setImageProvider([this](int page) {
+        return rawPage(page);
+    });
 
     connect(render, QOverload<unsigned int>::of(&Render::numPages),
             thumbnailGrid, &ThumbnailGridWidget::setNumSlides);
@@ -1617,6 +1622,7 @@ bool Viewer::getIsMangaMode()
 void Viewer::updateConfig(QSettings *settings)
 {
     goToFlow->updateConfig(settings);
+    thumbnailGrid->updateConfig(settings);
 
     QPalette palette;
     palette.setColor(backgroundRole(), Configuration::getConfiguration().getBackgroundColor(theme.viewer.defaultBackgroundColor));
@@ -1855,6 +1861,7 @@ void Viewer::animateShowThumbnailGrid()
         showThumbnailGridAnimation->setEndValue(1.0);
         showThumbnailGridAnimation->start();
         thumbnailGrid->show();
+        thumbnailGrid->highlightPage(render->getIndex());
         thumbnailGrid->setPageNumber(render->getIndex());
         thumbnailGrid->centerSlide(render->getIndex());
         thumbnailGrid->setFocus(Qt::OtherFocusReason);

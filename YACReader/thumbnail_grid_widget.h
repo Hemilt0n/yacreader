@@ -3,14 +3,18 @@
 
 #include "themable.h"
 
-#include <QHash>
+#include <QByteArray>
 #include <QSize>
 #include <QVector>
 #include <QWidget>
 
+#include <functional>
+
 class QGridLayout;
 class QScrollArea;
 class QLabel;
+class QImage;
+class QShowEvent;
 class ThumbnailGridToolBar;
 
 class ThumbnailGridWidget : public QWidget, protected Themable
@@ -22,6 +26,7 @@ public:
     ~ThumbnailGridWidget() override;
 
     void setFlowRightToLeft(bool b);
+    void setImageProvider(std::function<QByteArray(int)> provider);
 
 public slots:
     void reset();
@@ -39,6 +44,7 @@ signals:
 protected:
     void keyPressEvent(QKeyEvent *event) override;
     void resizeEvent(QResizeEvent *event) override;
+    void showEvent(QShowEvent *event) override;
     void applyTheme(const Theme &theme) override;
     bool eventFilter(QObject *watched, QEvent *event) override;
 
@@ -51,37 +57,37 @@ private:
         bool imageLoaded = false;
     };
 
-    struct ScaledCacheEntry {
-        qint64 sourceCacheKey = 0;
-        QSize sourceSize;
-        QImage scaledImage;
-    };
-
     QScrollArea *scrollArea = nullptr;
     QWidget *gridContainer = nullptr;
     QGridLayout *gridLayout = nullptr;
     ThumbnailGridToolBar *toolBar = nullptr;
 
     QVector<ThumbnailItem> items;
-    QHash<int, QByteArray> rawImages;
     QVector<bool> imagesReady;
-    QHash<int, ScaledCacheEntry> scaledCache;
+    std::function<QByteArray(int)> imageProvider;
 
     int currentHighlightIndex = -1;
     int currentFocusIndex = -1;
     int totalPages = 0;
-    QSize thumbnailSize{ 150, 200 };
+    QSize thumbnailSize { 150, 200 };
     int columnCount = 0;
     bool flowRightToLeft = false;
 
     void buildGrid();
     void clearGrid();
-    void scrollToPage(int index);
     void updateItemHighlight(int oldIndex, int newIndex);
     void updateItemSelection(int oldIndex, int newIndex);
     int computeColumnCount() const;
     QWidget *createThumbnailCell(int pageIndex);
     void displayThumbnail(int index);
+    void displayThumbnail(int index, const QByteArray &imageData);
+    void ensureVisibleThumbnails();
+    bool isThumbnailVisible(int index) const;
+    void applyItemStyle(int index);
+    void refreshItemStyles();
+    QString styleForItem(int index) const;
+    int itemIndexForObject(QObject *watched) const;
+    QSize scaledThumbnailSize(const QImage &image) const;
 };
 
 #endif
