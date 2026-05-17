@@ -64,6 +64,43 @@ def main():
         'QSignalBlocker' in toolbar,
         'Toolbar blocks slider feedback while setting page programmatically'))
 
+    checks.append(require(
+        'gridLayout->setOriginCorner(flowRightToLeft ? Qt::TopRightCorner : Qt::TopLeftCorner)' in grid and 'int col = i % columnCount;' in grid,
+        'RTL grid layout uses QGridLayout origin corner while keeping page index order stable'))
+    checks.append(require(
+        'if (viewportWidth <= 0 && parentWidget())' in grid and 'viewportWidth = parentWidget()->width();' in grid,
+        'Auto column calculation falls back to the parent width before the scroll viewport is laid out'))
+    checks.append(require(
+        'gridContainer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum)' in grid,
+        'Grid container expands horizontally so the scroll area can compute multiple columns'))
+    show_pattern = re.compile(r'void ThumbnailGridWidget::showEvent[^{]*\{(?P<body>.*?)\n\}', re.S)
+    show_match = show_pattern.search(grid)
+    show_body = show_match.group('body') if show_match else ''
+    checks.append(require(
+        show_match is not None and 'updateSize();' in show_body and 'QTimer::singleShot(0, this, [this]()' in show_body and 'centerSlide(currentHighlightIndex)' in show_body,
+        'Showing the grid rebuilds after real widget geometry is available and recenters the current page'))
+    checks.append(require(
+        'const QSize displaySize = scaledThumbnailSize(img);' in grid and 'items[index].imageLabel->setFixedSize(displaySize);' in grid,
+        'Thumbnail label frame adapts to each page aspect ratio instead of forcing portrait boxes'))
+    checks.append(require(
+        'QSize ThumbnailGridWidget::scaledThumbnailSize(const QImage &image) const' in grid and 'image.size().scaled(thumbnailSize, Qt::KeepAspectRatio)' in grid,
+        'Adaptive thumbnail frame is bounded by the configured maximum size while preserving aspect ratio'))
+    checks.append(require(
+        'imageLabel->installEventFilter(this);' in grid and 'pageLabel->installEventFilter(this);' in grid,
+        'Thumbnail image and page labels handle clicks directly instead of leaking double-clicks to the viewer'))
+    event_pattern = re.compile(r'bool ThumbnailGridWidget::eventFilter[^{]*\{(?P<body>.*?)\n\}', re.S)
+    event_match = event_pattern.search(grid)
+    event_body = event_match.group('body') if event_match else ''
+    checks.append(require(
+        event_match is not None and 'QEvent::MouseButtonDblClick' in event_body and 'QEvent::MouseButtonRelease' in event_body and 'event->accept();' in event_body,
+        'Grid consumes thumbnail double-click events and jumps on left-button release'))
+    checks.append(require(
+        'const int pageIndex = itemIndexForObject(watched);' in event_body and 'emit goToPage(static_cast<unsigned int>(pageIndex));' in event_body,
+        'Thumbnail click target resolves to the stored page index before emitting goToPage'))
+    checks.append(require(
+        'int ThumbnailGridWidget::itemIndexForObject(QObject *watched) const' in grid and 'return items[i].pageIndex;' in grid,
+        'Click handling remains page-index based after grid rebuilds or RTL layout changes'))
+
     return 0 if all(checks) else 1
 
 

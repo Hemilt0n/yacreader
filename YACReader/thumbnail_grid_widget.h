@@ -13,6 +13,7 @@
 class QGridLayout;
 class QScrollArea;
 class QLabel;
+class QImage;
 class QShowEvent;
 class ThumbnailGridToolBar;
 
@@ -85,6 +86,8 @@ private:
     void applyItemStyle(int index);
     void refreshItemStyles();
     QString styleForItem(int index) const;
+    int itemIndexForObject(QObject *watched) const;
+    QSize scaledThumbnailSize(const QImage &image) const;
 };
 
 #endif
