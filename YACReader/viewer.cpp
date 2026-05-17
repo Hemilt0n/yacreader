@@ -1424,12 +1424,10 @@ void Viewer::setMangaModeImpl(bool manga, bool persistSettings)
         Configuration &config = Configuration::getConfiguration();
         config.setDoubleMangaPage(doubleMangaPage);
         goToFlow->updateConfig(config.getSettings());
-        thumbnailGrid->updateConfig(config.getSettings());
     }
 
     render->setManga(manga);
     goToFlow->setFlowRightToLeft(doubleMangaPage);
-    thumbnailGrid->setFlowRightToLeft(doubleMangaPage);
 }
 
 void Viewer::setMangaWithoutStoringSetting(bool manga)

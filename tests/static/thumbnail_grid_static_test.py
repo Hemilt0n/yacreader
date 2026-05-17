@@ -31,14 +31,14 @@ def main():
         'thumbnailGrid, &ThumbnailGridWidget::highlightPage' in viewer,
         'Viewer connects Render page changes to ThumbnailGridWidget::highlightPage'))
     checks.append(require(
-        'thumbnailGrid->setFlowRightToLeft(doubleMangaPage)' in viewer,
-        'Viewer keeps thumbnail grid RTL state in sync with manga mode'))
+        'thumbnailGrid->setFlowRightToLeft(doubleMangaPage)' not in viewer,
+        'Viewer keeps thumbnail grid order independent from manga reading direction'))
     checks.append(require(
         'thumbnailGrid->updateConfig(settings)' in viewer,
         'Viewer forwards option reloads to the thumbnail grid'))
     checks.append(require(
-        'thumbnailGrid->updateConfig(config.getSettings())' in viewer,
-        'Manga mode option changes rebuild the thumbnail grid layout'))
+        'thumbnailGrid->updateConfig(config.getSettings())' not in viewer,
+        'Manga mode option changes do not rebuild the thumbnail grid layout'))
     checks.append(require(
         'images/viewer_toolbar/thumbnailGrid.svg' in cmake and 'images/viewer_toolbar/slideshow.svg' in cmake and 'images/shortcuts/shortcuts_group_grid.svg' in cmake and 'images/shortcuts/shortcuts_group_slideshow.svg' in cmake,
         'Thumbnail grid and slideshow toolbar/shortcut icons are bundled as Qt resources'))
